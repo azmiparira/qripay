@@ -228,6 +228,45 @@ app.post('/api/create-order', (req, res) => {
   apiReq.end();
 });
 
+// Real-Time Order Status Checker from Cashi.id API
+app.get('/api/check-status/:orderId', (req, res) => {
+  const config = getCashiConfig();
+  const orderId = req.params.orderId;
+
+  if (!orderId) {
+    return res.status(400).json({ success: false, message: 'orderId diperlukan' });
+  }
+
+  const options = {
+    hostname: 'cashi.id',
+    path: `/api/check-status/${encodeURIComponent(orderId)}`,
+    method: 'GET',
+    headers: {
+      'x-api-key': config.apiKey,
+      'User-Agent': 'Cashi-Soundbox-Server/1.0'
+    }
+  };
+
+  const apiReq = https.request(options, (apiRes) => {
+    let raw = '';
+    apiRes.on('data', chunk => raw += chunk);
+    apiRes.on('end', () => {
+      try {
+        const json = JSON.parse(raw);
+        res.json(json);
+      } catch (e) {
+        res.status(500).json({ success: false, error: 'Gagal parse status Cashi.id', raw });
+      }
+    });
+  });
+
+  apiReq.on('error', (err) => {
+    res.status(500).json({ success: false, error: err.message });
+  });
+
+  apiReq.end();
+});
+
 // Check Cashi.id API Status & Return Active API Key Preview
 app.get('/api/cashi/status', (req, res) => {
   const config = getCashiConfig();

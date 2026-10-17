@@ -201,7 +201,7 @@ function queueSpeech(amount, customMessage) {
 }
 
 // 4. Activate Audio Button (Bypass Autoplay Policy)
-function activateAudio() {
+function activateAudio(playGreeting = true) {
   try {
     if (!audioContext) {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -223,14 +223,15 @@ function activateAudio() {
       <span>Soundbox Aktif & Siap Berbunyi</span>
     `;
 
-    // Test greeting sound
-    speakPaymentText(10000);
+    if (playGreeting) {
+      speakPaymentText(10000);
+    }
   } catch (err) {
     console.error('Error activating audio:', err);
   }
 }
 
-btnToggleAudio.addEventListener('click', activateAudio);
+btnToggleAudio.addEventListener('click', () => activateAudio(true));
 
 // 5. Connect to SSE Stream from Server
 function connectSSE() {
@@ -462,12 +463,66 @@ document.querySelectorAll('.pos-chip').forEach(btn => {
   });
 });
 
+let activeOrderChecker = null;
+
+function startRealtimeOrderCheck(orderId, expectedAmount) {
+  if (activeOrderChecker) {
+    clearInterval(activeOrderChecker);
+  }
+
+  const qrisNote = document.querySelector('.qris-note');
+  if (qrisNote) {
+    qrisNote.innerHTML = '<span style="color: #60A5FA; font-weight: 700;">⚡ Menunggu pembayaran... (Mendeteksi otomatis)</span>';
+  }
+
+  console.log(`[Soundbox] ⚡ Checking status for order ${orderId} every 1.2s...`);
+
+  // Check Cashi status every 1200ms
+  activeOrderChecker = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/check-status/${encodeURIComponent(orderId)}`);
+      const data = await res.json();
+
+      if (data && (data.status === 'SETTLED' || data.status === 'PAID')) {
+        clearInterval(activeOrderChecker);
+        activeOrderChecker = null;
+
+        const finalAmount = data.amount || expectedAmount;
+        console.log(`[Soundbox] 🎉 PAYMENT SETTLED DETECTED: Rp ${finalAmount}`);
+
+        if (qrisNote) {
+          qrisNote.innerHTML = '<span style="color: #34D399; font-weight: 800; font-size: 1rem;">✅ PEMBAYARAN BERHASIL DITERIMA!</span>';
+        }
+
+        handleIncomingPayment({
+          amount: finalAmount,
+          payer: 'QRIS Cashi.id',
+          trxId: data.order_id || orderId,
+          status: 'SETTLED',
+          timestamp: new Date().toISOString()
+        });
+
+        setTimeout(() => {
+          if (qrisModal) qrisModal.style.display = 'none';
+        }, 3500);
+      }
+    } catch (e) {
+      console.warn('[Soundbox] Check status error:', e);
+    }
+  }, 1200);
+}
+
 if (btnGenerateQRIS) {
   btnGenerateQRIS.addEventListener('click', async () => {
     const amt = parseInt(posAmount.value, 10);
     if (!amt || amt < 2000) {
       alert('Minimal nominal pembayaran QRIS adalah Rp 2.000.');
       return;
+    }
+
+    // Auto unlock audio on user click so sound is 100% ready
+    if (!isAudioActivated) {
+      activateAudio(false);
     }
 
     const origText = btnGenerateQRIS.textContent;
@@ -500,8 +555,10 @@ if (btnGenerateQRIS) {
         }
 
         qrisModal.style.display = 'block';
+
+        // Start ultra-fast 1.2s polling for this order
+        startRealtimeOrderCheck(result.orderId, payAmount);
       } else {
-        // Detailed error message from Cashi.id
         const errMsg = result.error || 'Gagal membuat QRIS di Cashi.id';
         alert(`Pemberitahuan Cashi.id: ${errMsg}\n\n(Catatan: Jika akun baru, pastikan verifikasi/aktivasi akun di dashboard Cashi.id telah selesai).`);
       }
@@ -516,6 +573,10 @@ if (btnGenerateQRIS) {
 
 if (btnCloseQRIS) {
   btnCloseQRIS.addEventListener('click', () => {
+    if (activeOrderChecker) {
+      clearInterval(activeOrderChecker);
+      activeOrderChecker = null;
+    }
     qrisModal.style.display = 'none';
   });
 }
