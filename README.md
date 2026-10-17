@@ -1,58 +1,41 @@
-# 🔊 QRIS Virtual Soundbox - PayKita
+# 🔊 QRIS Virtual Soundbox - Cashi.id
 
-Aplikasi Web Soundbox untuk memutar suara pengumuman pembayaran otomatis ketika **QRIS Statis** PayKita Anda di-scan oleh pembeli.
+Aplikasi Web Soundbox & Kasir QRIS Dinamis terintegrasi dengan **Cashi.id Payment Gateway**.
 
 ---
 
 ## 🌟 Fitur Utama
-1. **Audio Announcer (Text-to-Speech Bahasa Indonesia):**
-   - Otomatis mengubah nominal angka ke terbilang bahasa Indonesia (misal: `Rp 25.000` dibaca *"dua puluh lima ribu rupiah"*).
-   - Dilengkapi nada bel kasir digital (*cash register chime*) sebelum suara berbicara.
-2. **Real-time Webhook Receiver:**
-   - Menerima notifikasi seketika via Server-Sent Events (SSE) tanpa perlu refresh halaman.
-   - Kompatibel dengan berbagai format payload webhook payment gateway (PayKita, Midtrans, Tripay, dll).
-3. **Simulator Suara / Tombol Tes:**
-   - Tombol cepat Rp 10.000, Rp 25.000, Rp 50.000, Rp 100.000, atau nominal bebas untuk menguji suara sebelum dipakai jualan.
-4. **Log & Debugging:**
-   - Menampilkan payload mentah yang dikirim oleh PayKita langsung di dashboard web.
+1. **Audio Soundbox (Text-to-Speech Bahasa Indonesia - Nominal Dahulu):**
+   - Otomatis menyebutkan nominal terlebih dahulu:
+     *"Dua puluh lima ribu rupiah, pembayaran QRIS berhasil diterima."*
+   - Dilengkapi nada bel kasir digital (*cash register chime*).
+2. **Kasir QRIS Dinamis (Input Nominal Manual):**
+   - Kasir cukup ketik nominal belanja (min. Rp 2.000) atau klik tombol cepat (Rp 5rb, 10rb, 15rb, 25rb, 50rb, 100rb).
+   - Klik **Buat QRIS 📱**, QRIS dinamis resmi Cashi.id langsung terbit di layar untuk di-scan pembeli.
+   - Nominal otomatis terkunci di HP pembeli tanpa perlu ketik manual.
+3. **Webhook Otomatis Cashi.id (HMAC-SHA256):**
+   - Memvalidasi tanda tangan `x-gateway-signature` untuk menjamin keamanan transaksi resmi.
+   - Langsung membunyikan soundbox saat event `PAYMENT_SETTLED` diterima.
+4. **Kompatibilitas Vercel Serverless:**
+   - Dilengkapi polling fallback otomatis agar suara tetap berbunyi tanpa putus di Vercel.
 
 ---
 
-## 🚀 Cara Menjalankan
-
-Server saat ini **sudah berjalan di latar belakang (background)** pada port `3000`.
-
-### 1. Buka Web Soundbox di Browser
-Buka browser (Google Chrome, Edge, atau browser HP) dan akses:
-👉 **`http://localhost:3000`**
-
-### 2. Aktifkan Suara Soundbox
-Klik tombol hijau/biru **"Klik untuk Mengaktifkan Suara"** satu kali di layar web.
-*(Ini diperlukan karena kebijakan keamanan browser melarang website membunyikan suara otomatis sebelum ada interaksi klik dari pengguna).*
+## ⚙️ Konfigurasi Environment (`.env`)
+```env
+PORT=3000
+CASHI_BASE_URL=https://cashi.id
+CASHI_API_KEY=28567018921edd2bb00c979281d2ab663ab16b4809c87e23b4234f22d4b7fadf
+CASHI_WEBHOOK_SECRET=sk_725cec268bbf895562be95d9aff42c37
+MERCHANT_NAME=Jus Smoothies
+```
 
 ---
 
-## 📡 Menghubungkan ke PayKita (QRIS Statis)
-
-Agar server PayKita bisa mengirim notifikasi ke laptop/PC Anda:
-
-1. **Jadikan URL Server Anda Online (Tunneling):**
-   Jalankan salah satu perintah ini di terminal:
-   ```bash
-   npx localtunnel --port 3000
+## 📡 Setup Webhook di Dashboard Cashi.id
+1. Masuk ke Dashboard Cashi.id: **Settings** > **Webhooks**.
+2. Masukkan URL Webhook Anda:
+   ```text
+   https://qripay.vercel.app/webhook
    ```
-   *atau jika punya ngrok:*
-   ```bash
-   ngrok http 3000
-   ```
-2. Anda akan mendapatkan URL publik HTTPS, misalnya:
-   `https://soundbox-anda.loca.lt` atau `https://xxxx.ngrok-free.app`
-3. **Buka Dashboard PayKita:**
-   - Masuk ke dashboard merchant PayKita Anda.
-   - Buka menu **Pengaturan** / **Integrasi** / **Webhook / Callback**.
-   - Masukkan Callback URL:
-     `https://URL-PUBLIK-ANDA/webhook`
-   - Simpan pengaturan.
-
-Setiap kali QRIS Anda menerima pembayaran, PayKita akan menembak URL tersebut dan web Anda akan otomatis bersuara:
-*"Pembayaran QRIS berhasil diterima sebesar ... rupiah"*.
+3. Simpan pengaturan.

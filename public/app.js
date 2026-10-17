@@ -117,7 +117,7 @@ function playCashChime() {
   });
 }
 
-// 3. Text to Speech Engine (Bahasa Indonesia)
+// 3. Text to Speech Engine (Bahasa Indonesia - Nominal First!)
 function speakPaymentText(amount, customMessage) {
   return new Promise(async (resolve) => {
     if (!('speechSynthesis' in window)) {
@@ -138,6 +138,7 @@ function speakPaymentText(amount, customMessage) {
       const amountWords = terbilang(amount).trim();
       const tmpl = templateSelect.value;
 
+      // NOMINAL TERLEBIH DAHULU
       if (tmpl === 'standard') {
         textToSpeak = `${amountWords} rupiah, pembayaran QRIS berhasil diterima.`;
       } else if (tmpl === 'simple') {
@@ -248,7 +249,7 @@ function connectSSE() {
     try {
       const data = JSON.parse(event.data);
       if (data.type === 'CONNECTED') {
-        console.log('📡 SSE Connected. Merchant:', data.merchant);
+        console.log('📡 SSE Connected. Cashi.id Soundbox Active.');
       } else if (data.type === 'PAYMENT') {
         handleIncomingPayment(data);
       } else if (data.type === 'PAYMENT_TEST') {
@@ -276,7 +277,6 @@ async function pollHistoryFallback() {
       if (lastKnownTxIds.size === 0) {
         data.history.forEach(tx => lastKnownTxIds.add(tx.trxId));
       } else {
-        // Find new transactions that were not seen
         for (const tx of data.history) {
           if (!lastKnownTxIds.has(tx.trxId)) {
             lastKnownTxIds.add(tx.trxId);
@@ -289,12 +289,16 @@ async function pollHistoryFallback() {
 }
 setInterval(pollHistoryFallback, 3000);
 
-// Handle Incoming Real Payment
+// Handle Incoming Payment Event
 function handleIncomingPayment(payment) {
   const formattedAmount = 'Rp ' + Number(payment.amount).toLocaleString('id-ID');
   
   displayAmount.textContent = formattedAmount;
-  displayInfo.textContent = `Sukses • ${payment.payer || 'QRIS ShopeePay'} • ${new Date(payment.timestamp).toLocaleTimeString('id-ID')}`;
+  displayInfo.textContent = `Lunas • ${payment.payer || 'QRIS Cashi.id'} • ${new Date(payment.timestamp).toLocaleTimeString('id-ID')}`;
+
+  // Close QR modal if active
+  const qrisModal = document.getElementById('qrisModal');
+  if (qrisModal) qrisModal.style.display = 'none';
 
   queueSpeech(payment.amount);
   addTransactionToUI(payment);
@@ -303,12 +307,12 @@ function handleIncomingPayment(payment) {
 // Handle Test Webhook
 function handleIncomingTestWebhook(testData) {
   displayAmount.textContent = 'Rp 10.000';
-  displayInfo.textContent = `🧪 Tes Webhook PayKita Berhasil • ${new Date().toLocaleTimeString('id-ID')}`;
+  displayInfo.textContent = `🧪 Tes Webhook Cashi.id Berhasil • ${new Date().toLocaleTimeString('id-ID')}`;
   
-  queueSpeech(10000, 'Tes Webhook dari PayKita berhasil diterima.');
+  queueSpeech(10000, 'Sepuluh ribu rupiah, tes webhook dari Cashi.id berhasil.');
   addTransactionToUI({
     amount: 10000,
-    payer: 'Tes Webhook PayKita',
+    payer: 'Tes Webhook Cashi.id',
     trxId: 'TEST-WEBHOOK',
     timestamp: testData.timestamp
   });
@@ -327,13 +331,13 @@ function addTransactionToUI(tx) {
     <div class="tx-left">
       <div class="tx-icon-qris">QRIS</div>
       <div>
-        <div class="tx-payer">${tx.payer || 'Pembeli QRIS'}</div>
+        <div class="tx-payer">${tx.payer || 'QRIS Cashi'}</div>
         <div class="tx-meta">${tx.trxId || 'TRX'} • ${timeStr}</div>
       </div>
     </div>
     <div class="tx-right">
       <div class="tx-amount">+Rp ${Number(tx.amount).toLocaleString('id-ID')}</div>
-      <span class="tx-badge">BERHASIL</span>
+      <span class="tx-badge">LUNAS</span>
     </div>
   `;
 
@@ -352,7 +356,7 @@ async function triggerSimulation(amount) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         amount: parseInt(amount, 10),
-        payer: 'Pembeli QRIS (ShopeePay)'
+        payer: 'Pembeli QRIS (Cashi.id)'
       })
     });
     const result = await res.json();
@@ -362,17 +366,9 @@ async function triggerSimulation(amount) {
   }
 }
 
-// Quick amount chips
-document.querySelectorAll('.btn-chip').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const amt = btn.getAttribute('data-amount');
-    triggerSimulation(amt);
-  });
-});
-
-// Custom simulation button
+// Simulation Button
 btnRunSim.addEventListener('click', () => {
-  const val = customSimAmount.value || 10000;
+  const val = customSimAmount.value || 25000;
   triggerSimulation(val);
 });
 
@@ -382,7 +378,7 @@ btnClearFeed.addEventListener('click', () => {
     <div class="empty-state" id="emptyState">
       <div class="empty-icon">💸</div>
       <p>Belum ada pembayaran masuk</p>
-      <span>Scan QRIS Jus Smoothies atau gunakan tombol simulasi</span>
+      <span>Buat QRIS kasir di sebelah kiri atau lakukan pembayaran</span>
     </div>
   `;
 });
@@ -416,7 +412,7 @@ async function fetchLogs() {
     if (data.logs && data.logs.length > 0) {
       rawLogsPreview.textContent = JSON.stringify(data.logs[0], null, 2);
     } else {
-      rawLogsPreview.textContent = 'Belum ada payload webhook masuk dari PayKita.';
+      rawLogsPreview.textContent = 'Belum ada payload webhook masuk dari Cashi.id.';
     }
   } catch (e) {
     rawLogsPreview.textContent = 'Gagal memuat log.';
@@ -425,46 +421,49 @@ async function fetchLogs() {
 
 btnRefreshLogs.addEventListener('click', fetchLogs);
 
-// Check PayKita Live API status on startup
-async function checkPayKitaStatus() {
+// Check Cashi.id API status on startup
+async function checkCashiStatus() {
   try {
-    const res = await fetch('/api/paykita/status');
+    const res = await fetch('/api/cashi/status');
     const data = await res.json();
-    if (data.success) {
+    if (data.httpCode === 403 && data.status && data.status.error) {
+      apiStatusPill.className = 'api-status-pill';
+      apiStatusText.textContent = `Cashi: ${data.status.error}`;
+      apiStatusPill.title = 'Silakan aktivasi akun di dashboard Cashi.id';
+    } else if (data.success) {
       apiStatusPill.className = 'api-status-pill online';
-      apiStatusText.textContent = 'PayKita API: Aktif';
+      apiStatusText.textContent = 'Cashi.id: Terhubung';
     } else {
-      apiStatusText.textContent = 'PayKita API: Offline';
+      apiStatusText.textContent = 'Cashi.id: Siap';
     }
   } catch (err) {
-    apiStatusText.textContent = 'PayKita API: Terhubung';
+    apiStatusText.textContent = 'Cashi.id: Siap';
   }
 }
 
-// Initialize
-connectSSE();
-checkPayKitaStatus();
-
-// Pre-load voices
-if ('speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    window.speechSynthesis.getVoices();
-  };
-}
-
-// POS QRIS Generation
+// 7. POS QRIS Generation (Kasir Cashi.id)
 const btnGenerateQRIS = document.getElementById('btnGenerateQRIS');
 const posAmount = document.getElementById('posAmount');
 const qrisModal = document.getElementById('qrisModal');
 const qrisTotalAmount = document.getElementById('qrisTotalAmount');
 const qrisImage = document.getElementById('qrisImage');
+const qrisCheckoutLink = document.getElementById('qrisCheckoutLink');
 const btnCloseQRIS = document.getElementById('btnCloseQRIS');
+
+// Quick amount chips for POS
+document.querySelectorAll('.pos-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const amt = btn.getAttribute('data-amount');
+    posAmount.value = amt;
+    btnGenerateQRIS.click();
+  });
+});
 
 if (btnGenerateQRIS) {
   btnGenerateQRIS.addEventListener('click', async () => {
     const amt = parseInt(posAmount.value, 10);
-    if (!amt || amt <= 0) {
-      alert('Silakan masukkan nominal belanja yang valid.');
+    if (!amt || amt < 2000) {
+      alert('Minimal nominal pembayaran QRIS adalah Rp 2.000.');
       return;
     }
 
@@ -479,16 +478,32 @@ if (btnGenerateQRIS) {
         body: JSON.stringify({ amount: amt })
       });
       const result = await res.json();
-      if (result.success && result.data && result.data.qris) {
-        const payAmount = result.data.pay_amount || amt;
-        qrisTotalAmount.textContent = `Total Bayar: Rp ${Number(payAmount).toLocaleString('id-ID')}`;
-        qrisImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(result.data.qris)}`;
+      
+      if (result.success) {
+        const payAmount = result.amount || amt;
+        qrisTotalAmount.textContent = `Total: Rp ${Number(payAmount).toLocaleString('id-ID')}`;
+        
+        if (result.qrUrl) {
+          qrisImage.src = result.qrUrl;
+        } else if (result.checkout_url) {
+          qrisImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(result.checkout_url)}`;
+        }
+
+        if (result.checkout_url) {
+          qrisCheckoutLink.href = result.checkout_url;
+          qrisCheckoutLink.style.display = 'inline-block';
+        } else {
+          qrisCheckoutLink.style.display = 'none';
+        }
+
         qrisModal.style.display = 'block';
       } else {
-        alert('Gagal membuat QRIS: ' + (result.data?.message || result.error || 'Periksa koneksi PayKita'));
+        // Detailed error message from Cashi.id
+        const errMsg = result.error || 'Gagal membuat QRIS di Cashi.id';
+        alert(`Pemberitahuan Cashi.id: ${errMsg}\n\n(Catatan: Jika akun baru, pastikan verifikasi/aktivasi akun di dashboard Cashi.id telah selesai).`);
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      alert('Error koneksi: ' + err.message);
     } finally {
       btnGenerateQRIS.textContent = origText;
       btnGenerateQRIS.disabled = false;
@@ -502,3 +517,13 @@ if (btnCloseQRIS) {
   });
 }
 
+// Initialize
+connectSSE();
+checkCashiStatus();
+
+// Pre-load voices
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}
