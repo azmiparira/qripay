@@ -115,6 +115,32 @@
           </div>
         </div>
 
+        <!-- POS / Kasir QRIS Generator -->
+        <div class="pos-qris-box">
+          <div class="pos-header">
+            <h3>Buat QRIS Pembayaran (Kasir)</h3>
+            <span class="badge-live">Shopee Partner</span>
+          </div>
+          <p class="section-desc">Ketik nominal belanja, QRIS akan otomatis terbit & siap di-scan pembeli:</p>
+          <div class="custom-sim-row">
+            <div class="input-prefix-wrapper">
+              <span class="prefix">Rp</span>
+              <input type="number" id="posAmount" placeholder="Nominal belanja" value="10000">
+            </div>
+            <button id="btnGenerateQRIS" class="btn-primary-sm">
+              Buat QRIS 📱
+            </button>
+          </div>
+          <div id="qrisModal" class="qris-display-area" style="display: none;">
+            <div class="qris-card">
+              <p class="qris-target-amount" id="qrisTotalAmount">Total: Rp 10.000</p>
+              <img id="qrisImage" src="" alt="QRIS Code" class="qris-img">
+              <p class="qris-note">Mendukung BCA, ShopeePay, GoPay, OVO, DANA, dll</p>
+              <button id="btnCloseQRIS" class="btn-ghost-sm" style="margin-top: 8px;">Tutup QR</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Voice Customization Settings -->
         <div class="settings-box">
           <div class="settings-header">

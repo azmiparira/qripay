@@ -451,3 +451,54 @@ if ('speechSynthesis' in window) {
     window.speechSynthesis.getVoices();
   };
 }
+
+// POS QRIS Generation
+const btnGenerateQRIS = document.getElementById('btnGenerateQRIS');
+const posAmount = document.getElementById('posAmount');
+const qrisModal = document.getElementById('qrisModal');
+const qrisTotalAmount = document.getElementById('qrisTotalAmount');
+const qrisImage = document.getElementById('qrisImage');
+const btnCloseQRIS = document.getElementById('btnCloseQRIS');
+
+if (btnGenerateQRIS) {
+  btnGenerateQRIS.addEventListener('click', async () => {
+    const amt = parseInt(posAmount.value, 10);
+    if (!amt || amt <= 0) {
+      alert('Silakan masukkan nominal belanja yang valid.');
+      return;
+    }
+
+    const origText = btnGenerateQRIS.textContent;
+    btnGenerateQRIS.textContent = 'Membuat...';
+    btnGenerateQRIS.disabled = true;
+
+    try {
+      const res = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amt })
+      });
+      const result = await res.json();
+      if (result.success && result.data && result.data.qris) {
+        const payAmount = result.data.pay_amount || amt;
+        qrisTotalAmount.textContent = `Total Bayar: Rp ${Number(payAmount).toLocaleString('id-ID')}`;
+        qrisImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(result.data.qris)}`;
+        qrisModal.style.display = 'block';
+      } else {
+        alert('Gagal membuat QRIS: ' + (result.data?.message || result.error || 'Periksa koneksi PayKita'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btnGenerateQRIS.textContent = origText;
+      btnGenerateQRIS.disabled = false;
+    }
+  });
+}
+
+if (btnCloseQRIS) {
+  btnCloseQRIS.addEventListener('click', () => {
+    qrisModal.style.display = 'none';
+  });
+}
+

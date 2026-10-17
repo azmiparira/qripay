@@ -284,6 +284,51 @@ app.get('/api/paykita/status', (req, res) => {
   apiReq.end();
 });
 
+// Create Order & Dynamic QRIS on PayKita
+app.post('/api/create-order', (req, res) => {
+  const baseAmount = parseInt(req.body.amount, 10);
+  if (!baseAmount || baseAmount <= 0) {
+    return res.status(400).json({ success: false, message: 'Nominal tidak valid' });
+  }
+
+  const postData = JSON.stringify({
+    base_amount: baseAmount,
+    reference: 'POS-' + Date.now(),
+    webhook_url: 'https://qripay.vercel.app/webhook',
+    ttl_seconds: 600
+  });
+
+  const apiReq = http.request({
+    hostname: 'pay.digikita.id',
+    path: '/api/orders',
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': PAYKITA_CONFIG.apiKey,
+      'Content-Length': Buffer.byteLength(postData),
+      'User-Agent': 'PayKita-Soundbox-Server/1.0'
+    }
+  }, (apiRes) => {
+    let raw = '';
+    apiRes.on('data', chunk => raw += chunk);
+    apiRes.on('end', () => {
+      try {
+        const json = JSON.parse(raw);
+        res.json({ success: true, data: json.data || json });
+      } catch (e) {
+        res.status(500).json({ success: false, error: 'Gagal parse response PayKita', raw });
+      }
+    });
+  });
+
+  apiReq.on('error', (err) => {
+    res.status(500).json({ success: false, error: err.message });
+  });
+
+  apiReq.write(postData);
+  apiReq.end();
+});
+
 // Simulation Endpoint (For testing from frontend)
 app.post('/api/simulate', (req, res) => {
   const amount = parseInt(req.body.amount, 10) || 15000;
