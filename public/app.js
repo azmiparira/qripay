@@ -139,13 +139,13 @@ function speakPaymentText(amount, customMessage) {
       const tmpl = templateSelect.value;
 
       if (tmpl === 'standard') {
-        textToSpeak = `Pembayaran QRIS berhasil diterima, sebesar ${amountWords} rupiah.`;
+        textToSpeak = `${amountWords} rupiah, pembayaran QRIS berhasil diterima.`;
       } else if (tmpl === 'simple') {
-        textToSpeak = `Uang masuk, ${amountWords} rupiah.`;
+        textToSpeak = `${amountWords} rupiah, uang masuk.`;
       } else if (tmpl === 'kasir') {
-        textToSpeak = `Pembayaran QRIS sukses, ${amountWords} rupiah. Terima kasih.`;
+        textToSpeak = `${amountWords} rupiah, pembayaran QRIS sukses. Terima kasih.`;
       } else if (tmpl === 'short') {
-        textToSpeak = `${amountWords} rupiah diterima.`;
+        textToSpeak = `${amountWords} rupiah berhasil diterima.`;
       }
     }
 
