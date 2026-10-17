@@ -426,15 +426,18 @@ async function checkCashiStatus() {
   try {
     const res = await fetch('/api/cashi/status');
     const data = await res.json();
+    const keyInfo = data.apiKeyMasked ? ` (${data.apiKeyMasked})` : '';
+
     if (data.httpCode === 403 && data.status && data.status.error) {
       apiStatusPill.className = 'api-status-pill';
-      apiStatusText.textContent = `Cashi: ${data.status.error}`;
+      apiStatusText.textContent = `Cashi${keyInfo}: ${data.status.error}`;
       apiStatusPill.title = 'Silakan aktivasi akun di dashboard Cashi.id';
-    } else if (data.success) {
+    } else if (data.success && data.httpCode === 200) {
       apiStatusPill.className = 'api-status-pill online';
-      apiStatusText.textContent = 'Cashi.id: Terhubung';
+      apiStatusText.textContent = `Cashi.id Aktif${keyInfo}`;
     } else {
-      apiStatusText.textContent = 'Cashi.id: Siap';
+      apiStatusPill.className = 'api-status-pill online';
+      apiStatusText.textContent = `Cashi.id Siap${keyInfo}`;
     }
   } catch (err) {
     apiStatusText.textContent = 'Cashi.id: Siap';

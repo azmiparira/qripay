@@ -8,12 +8,15 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const CASHI_CONFIG = {
-  baseUrl: process.env.CASHI_BASE_URL || 'https://cashi.id',
-  apiKey: process.env.CASHI_API_KEY || '28567018921edd2bb00c979281d2ab663ab16b4809c87e23b4234f22d4b7fadf',
-  webhookSecret: process.env.CASHI_WEBHOOK_SECRET || 'sk_725cec268bbf895562be95d9aff42c37',
-  merchantName: process.env.MERCHANT_NAME || 'Jus Smoothies'
-};
+// Dynamic configuration getter: Always pulls latest values from Environment Variables (Vercel / .env)
+function getCashiConfig() {
+  const apiKey = (process.env.CASHI_API_KEY || '').trim() || '28567018921edd2bb00c979281d2ab663ab16b4809c87e23b4234f22d4b7fadf';
+  const webhookSecret = (process.env.CASHI_WEBHOOK_SECRET || '').trim() || 'sk_725cec268bbf895562be95d9aff42c37';
+  const baseUrl = (process.env.CASHI_BASE_URL || 'https://cashi.id').trim();
+  const merchantName = (process.env.MERCHANT_NAME || 'Jus Smoothies').trim();
+
+  return { baseUrl, apiKey, webhookSecret, merchantName };
+}
 
 app.use(cors());
 
@@ -58,10 +61,12 @@ app.get('/events', (req, res) => {
   const newClient = { id: clientId, res };
   sseClients.push(newClient);
 
+  const config = getCashiConfig();
   res.write(`data: ${JSON.stringify({ 
     type: 'CONNECTED', 
     message: 'Cashi.id Soundbox Live Connected',
-    merchant: CASHI_CONFIG.merchantName
+    merchant: config.merchantName,
+    apiKeyMasked: config.apiKey ? (config.apiKey.slice(0, 6) + '...' + config.apiKey.slice(-4)) : 'Not set'
   })}\n\n`);
 
   req.on('close', () => {
@@ -71,6 +76,7 @@ app.get('/events', (req, res) => {
 
 // Cashi.id HMAC-SHA256 Signature Validator
 function verifyCashiSignature(req) {
+  const config = getCashiConfig();
   const signature = req.headers['x-gateway-signature'] || req.headers['http_x_gateway_signature'];
 
   if (!signature) {
@@ -79,7 +85,7 @@ function verifyCashiSignature(req) {
 
   const payload = req.rawBody || JSON.stringify(req.body);
   const expected = crypto
-    .createHmac('sha256', CASHI_CONFIG.webhookSecret)
+    .createHmac('sha256', config.webhookSecret)
     .update(payload)
     .digest('hex');
 
@@ -155,6 +161,7 @@ app.post('/api/cashi-webhook', handleIncomingWebhook);
 
 // Create Dynamic QRIS Order via Cashi.id API
 app.post('/api/create-order', (req, res) => {
+  const config = getCashiConfig();
   const amount = parseInt(req.body.amount, 10);
   if (!amount || amount < 2000) {
     return res.status(400).json({ 
@@ -177,7 +184,7 @@ app.post('/api/create-order', (req, res) => {
     path: '/api/create-order',
     method: 'POST',
     headers: {
-      'x-api-key': CASHI_CONFIG.apiKey,
+      'x-api-key': config.apiKey,
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(payload),
       'User-Agent': 'Cashi-Soundbox-Server/1.0'
@@ -221,14 +228,18 @@ app.post('/api/create-order', (req, res) => {
   apiReq.end();
 });
 
-// Check Cashi.id API Status
+// Check Cashi.id API Status & Return Active API Key Preview
 app.get('/api/cashi/status', (req, res) => {
+  const config = getCashiConfig();
+  const apiKeyMasked = config.apiKey ? (config.apiKey.slice(0, 6) + '...' + config.apiKey.slice(-4)) : 'Not configured';
+  const hasEnvCustom = !!process.env.CASHI_API_KEY;
+
   const options = {
     hostname: 'cashi.id',
     path: '/api/check-status/CHECK-CONNECT',
     method: 'GET',
     headers: {
-      'x-api-key': CASHI_CONFIG.apiKey,
+      'x-api-key': config.apiKey,
       'User-Agent': 'Cashi-Soundbox-Server/1.0'
     }
   };
@@ -242,14 +253,18 @@ app.get('/api/cashi/status', (req, res) => {
         res.json({
           success: true,
           status: json,
-          merchant: CASHI_CONFIG.merchantName,
+          merchant: config.merchantName,
+          apiKeyMasked: apiKeyMasked,
+          hasEnvCustom: hasEnvCustom,
           httpCode: apiRes.statusCode
         });
       } catch (e) {
         res.json({
           success: true,
-          status: { note: 'Cashi connected' },
-          merchant: CASHI_CONFIG.merchantName,
+          status: { note: 'Cashi pinged' },
+          merchant: config.merchantName,
+          apiKeyMasked: apiKeyMasked,
+          hasEnvCustom: hasEnvCustom,
           httpCode: apiRes.statusCode
         });
       }
@@ -260,7 +275,9 @@ app.get('/api/cashi/status', (req, res) => {
     res.json({
       success: false,
       error: err.message,
-      merchant: CASHI_CONFIG.merchantName
+      merchant: config.merchantName,
+      apiKeyMasked: apiKeyMasked,
+      hasEnvCustom: hasEnvCustom
     });
   });
 
@@ -298,11 +315,12 @@ app.get('/api/logs', (req, res) => {
 });
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  const cfg = getCashiConfig();
   app.listen(PORT, () => {
     console.log(`=======================================================`);
     console.log(`🚀 Cashi.id QRIS Soundbox running on http://localhost:${PORT}`);
-    console.log(`🏪 Merchant: ${CASHI_CONFIG.merchantName}`);
-    console.log(`🔑 Cashi API Key: ${CASHI_CONFIG.apiKey.substr(0, 15)}...`);
+    console.log(`🏪 Merchant: ${cfg.merchantName}`);
+    console.log(`🔑 Cashi API Key: ${cfg.apiKey.substr(0, 15)}...`);
     console.log(`🛡️ Webhook Secret: Configured (HMAC-SHA256 Enabled)`);
     console.log(`📡 Webhook Endpoint: http://localhost:${PORT}/webhook`);
     console.log(`=======================================================`);
