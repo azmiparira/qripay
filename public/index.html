@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRIS Virtual Soundbox - Jus Smoothies</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="soundbox-icon-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="header-title-row">
+            <h1>QRIS Soundbox Web</h1>
+            <span class="merchant-tag" id="merchantTag">Jus Smoothies (Bandung)</span>
+          </div>
+          <p class="subtitle">Terhubung Resmi ke PayKita API • Shopee Partner</p>
+        </div>
+      </div>
+      <div class="header-status">
+        <div class="api-status-pill" id="apiStatusPill">
+          <span class="status-indicator"></span>
+          <span id="apiStatusText">Cek PayKita API...</span>
+        </div>
+        <span id="connectionBadge" class="status-pill status-disconnected">
+          <span class="dot"></span>
+          <span id="connectionText">Menghubungkan...</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-grid">
+      <!-- Left Column: Soundbox Speaker & Controls -->
+      <section class="speaker-card">
+        <!-- Merchant Info Card -->
+        <div class="merchant-meta-banner">
+          <div class="meta-item">
+            <span class="meta-label">TOKO MERCHANT</span>
+            <strong id="merchantNameDisplay">Jus Smoothies</strong>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">NMID QRIS</span>
+            <strong id="merchantNmidDisplay">ID1025404856482</strong>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">PROJECT PAYKITA</span>
+            <span class="meta-badge">Project Utama (Live)</span>
+          </div>
+        </div>
+
+        <div class="soundbox-device">
+          <div class="speaker-grill" id="speakerGrill">
+            <div class="wave wave-1"></div>
+            <div class="wave wave-2"></div>
+            <div class="wave wave-3"></div>
+            <div class="speaker-center">
+              <svg id="speakerIcon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="soundbox-screen">
+            <span class="screen-label">NOTIFIKASI TERAKHIR</span>
+            <div class="screen-amount" id="displayAmount">Rp 0</div>
+            <div class="screen-info" id="displayInfo">Standby • Menunggu QRIS di-scan...</div>
+          </div>
+        </div>
+
+        <!-- Master Sound Activation Button -->
+        <div class="audio-control-box">
+          <button id="btnToggleAudio" class="btn-activate-audio">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+            <span id="audioStatusText">Klik 1x untuk Mengaktifkan Suara</span>
+          </button>
+          <p class="hint-text">
+            ⚠️ Klik tombol di atas 1 kali saat membuka toko kasir agar browser mengizinkan suara berbunyi otomatis.
+          </p>
+        </div>
+
+        <!-- Test Simulator -->
+        <div class="simulator-box">
+          <h3>Simulasi / Uji Coba Suara</h3>
+          <p class="section-desc">Coba bunyikan suara soundbox kasir seketika:</p>
+          <div class="quick-amounts">
+            <button class="btn-chip" data-amount="10000">Rp 10.000</button>
+            <button class="btn-chip" data-amount="25000">Rp 25.000</button>
+            <button class="btn-chip" data-amount="50000">Rp 50.000</button>
+            <button class="btn-chip" data-amount="100000">Rp 100.000</button>
+          </div>
+          <div class="custom-sim-row">
+            <div class="input-prefix-wrapper">
+              <span class="prefix">Rp</span>
+              <input type="number" id="customSimAmount" placeholder="Nominal bebas" value="15000">
+            </div>
+            <button id="btnRunSim" class="btn-secondary">
+              Tes Bunyi 🔔
+            </button>
+          </div>
+        </div>
+
+        <!-- Voice Customization Settings -->
+        <div class="settings-box">
+          <div class="settings-header">
+            <h3>Pengaturan Suara</h3>
+          </div>
+          
+          <div class="setting-item">
+            <label for="templateSelect">Template Ucapan:</label>
+            <select id="templateSelect" class="form-select">
+              <option value="standard">"Pembayaran QRIS berhasil diterima, sebesar {nominal} rupiah"</option>
+              <option value="simple">"Uang masuk, {nominal} rupiah"</option>
+              <option value="kasir">"Pembayaran QRIS sukses, {nominal} rupiah. Terima kasih"</option>
+              <option value="short">"{nominal} rupiah diterima"</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-item flex-1">
+              <label for="speechRate">Kecepatan Suara: <span id="rateVal">1.0x</span></label>
+              <input type="range" id="speechRate" min="0.7" max="1.4" step="0.1" value="1.0">
+            </div>
+            <div class="setting-item flex-1">
+              <label for="chimeToggle">Suara Bel Kasir (Chime):</label>
+              <label class="switch">
+                <input type="checkbox" id="chimeToggle" checked>
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Feed & Webhook Configuration -->
+      <section class="feed-column">
+        <!-- Live Transaction Feed -->
+        <div class="card feed-card">
+          <div class="card-header">
+            <div>
+              <h2>Riwayat Pembayaran Real-Time</h2>
+              <p class="card-subtitle">Transaksi yang otomatis tertangkap dari PayKita QRIS</p>
+            </div>
+            <button id="btnClearFeed" class="btn-ghost" title="Bersihkan Tampilan">Bersihkan</button>
+          </div>
+
+          <div class="transaction-list" id="transactionList">
+            <div class="empty-state" id="emptyState">
+              <div class="empty-icon">💸</div>
+              <p>Belum ada pembayaran masuk</p>
+              <span>Scan QRIS Jus Smoothies atau gunakan tombol simulasi</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PayKita Webhook Setup Guide -->
+        <div class="card guide-card">
+          <div class="card-header">
+            <div>
+              <h2>Konfigurasi Webhook PayKita</h2>
+              <p class="card-subtitle">Kredensial Project Utama telah aktif & terverifikasi HMAC-SHA256</p>
+            </div>
+          </div>
+          <div class="guide-content">
+            <div class="credentials-badge-row">
+              <div class="cred-chip">
+                <span>API Key:</span> <code>pk_live_PJW96M...</code>
+              </div>
+              <div class="cred-chip">
+                <span>Secret:</span> <code>whsec_3uq_PaX...</code>
+              </div>
+            </div>
+
+            <ol class="guide-steps">
+              <li>
+                <strong>Buka Pengaturan Webhook PayKita:</strong><br>
+                Di menu <strong>Project Utama</strong> &gt; <strong>Webhook</strong>.
+              </li>
+              <li>
+                <strong>Masukkan Webhook URL:</strong><br>
+                Arahkan Callback URL ke endpoint server:
+                <div class="code-box">
+                  <code id="webhookUrlDisplay">http://localhost:3000/webhook</code>
+                  <button id="btnCopyWebhook" class="btn-copy">Salin</button>
+                </div>
+              </li>
+              <li>
+                <strong>Jika Menjalankan di Laptop Lokal:</strong><br>
+                Gunakan URL publik (tunnel) agar PayKita bisa menembak webhook ke laptop Anda:
+                <div class="code-snippet">
+                  <code>npx localtunnel --port 3000</code> atau <code>ngrok http 3000</code>
+                </div>
+              </li>
+            </ol>
+            
+            <div class="raw-logs-section">
+              <div class="logs-header">
+                <span>Live Webhook Log & Signature Inspector</span>
+                <button id="btnRefreshLogs" class="btn-ghost-sm">Refresh Log</button>
+              </div>
+              <pre id="rawLogsPreview">Belum ada payload webhook masuk dari PayKita.</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
