@@ -309,7 +309,7 @@ app.post('/update-token', apiKeyMiddleware, (req, res) => {
   if (!token) {
     return res.status(400).json({ success: false, error: 'Provide token' });
   }
-  shopeeToken = token.trim();
+  shopeeToken = token.trim().replace(/^["']|["']$/g, '');
   isInitialShopeeSync = true;
   tokenValidStatus = null;
   logEvent('INFO', 'ShopeeToken updated via /update-token');
@@ -582,7 +582,8 @@ app.post('/api/shopee/connect', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Token Shopee Partner tidak boleh kosong!' });
   }
 
-  const cleanToken = token.trim();
+  // Bersihkan spasi dan tanda petik jika user menyalin beserta tanda kutip
+  const cleanToken = token.trim().replace(/^["']|["']$/g, '');
   logEvent('INFO', `Connecting Shopee Partner account with token: ${cleanToken.slice(0, 6)}...`);
 
   try {

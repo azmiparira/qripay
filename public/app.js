@@ -375,7 +375,9 @@ async function connectShopee(token, isAuto = false) {
     return;
   }
 
-  const cleanToken = token.trim();
+  // Bersihkan spasi dan tanda petik jika user menyalin beserta tanda kutip
+  const cleanToken = token.trim().replace(/^["']|["']$/g, '');
+  shopeeTokenInput.value = cleanToken;
   btnConnectShopee.disabled = true;
   connectBtnText.textContent = 'Memverifikasi ke Shopee...';
   tokenHintText.textContent = 'Menghubungkan ke server ShopeePay Partner...';
