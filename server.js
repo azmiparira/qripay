@@ -246,6 +246,8 @@ function recordAndBroadcast(txData) {
   const tx = {
     id: lastEventId,
     transactionId: txData.transactionId || String(lastEventId),
+    storeId: txData.storeId || 'pempek',
+    storeName: txData.storeName || 'Pempek Bandung',
     amount: txData.amount || 0,
     payer: txData.payer || 'QRIS Pembeli',
     source: txData.source || 'Shopee Partner',
@@ -266,7 +268,7 @@ function recordAndBroadcast(txData) {
     }
   });
 
-  logEvent('INFO', `🔊 Soundbox Triggered: Rp ${tx.amount.toLocaleString('id-ID')} (${tx.payer}) via ${tx.source}`);
+  logEvent('INFO', `🔊 Soundbox [${tx.storeName}]: Rp ${tx.amount.toLocaleString('id-ID')} (${tx.payer}) via ${tx.source}`);
   return tx;
 }
 
@@ -709,9 +711,14 @@ app.get('/api/shopee/poll-transactions', async (req, res) => {
           // Ignore
         }
 
+        const storeId = req.query.storeId || 'pempek';
+        const storeName = req.query.storeName || 'Pempek Bandung';
+
         // Trigger soundbox announcement!
         const broadcastedTx = recordAndBroadcast({
           transactionId: txId,
+          storeId,
+          storeName,
           amount,
           payer: issuer,
           source: 'Shopee Partner Live API',
@@ -742,6 +749,8 @@ function handleIncomingPayment(req, res) {
   let amount = 0;
   let payer = 'ShopeePay';
   let rawText = '';
+  const storeId = req.body?.storeId || req.query?.storeId || 'pempek';
+  const storeName = req.body?.storeName || req.query?.storeName || 'Pempek Bandung';
 
   if (req.body && typeof req.body === 'object') {
     if (req.body.amount) amount = extractAmountFromText(req.body.amount);
@@ -771,6 +780,8 @@ function handleIncomingPayment(req, res) {
   const tx = recordAndBroadcast({
     amount,
     payer,
+    storeId,
+    storeName,
     source: req.body?.package || req.body?.source || 'Shopee Partner QRIS (Webhook)',
     rawText
   });
@@ -818,12 +829,16 @@ app.get('/api/sse', (req, res) => {
 app.post('/api/simulate', (req, res) => {
   const amount = parseInt(req.body.amount, 10) || 15000;
   const payer = req.body.payer || 'Pembeli QRIS (Tes Mandiri)';
+  const storeId = req.body.storeId || 'pempek';
+  const storeName = req.body.storeName || 'Pempek Bandung';
 
   const tx = recordAndBroadcast({
     amount,
     payer,
+    storeId,
+    storeName,
     source: 'Simulasi Web',
-    rawText: `Tes Simulasi Pembayaran Rp ${amount.toLocaleString('id-ID')}`
+    rawText: `Tes Simulasi Pembayaran Rp ${amount.toLocaleString('id-ID')} (${storeName})`
   });
 
   res.json({ success: true, transaction: tx });

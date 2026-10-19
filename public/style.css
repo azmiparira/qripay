@@ -933,3 +933,330 @@ body {
 .shopee-link:hover {
   text-decoration: underline;
 }
+
+/* ==============================================================================
+   BRANCH / ANAK PERUSAHAAN NAVIGATION & MULTI SOUNDBOX
+   ============================================================================== */
+.branch-nav-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.branch-nav-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.branch-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.branch-nav-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.branch-nav-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* Voice Preset Group */
+.voice-preset-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-preset-group label {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.select-voice {
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 12.5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.select-voice:focus {
+  border-color: var(--primary);
+}
+
+.btn-voice-test {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-voice-test:hover {
+  background: rgba(16, 185, 129, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Branch Tabs */
+.branch-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.branch-tab {
+  background: #0f172a;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.branch-tab:hover {
+  background: #172339;
+  border-color: #475569;
+}
+
+.branch-tab.active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(59, 130, 246, 0.08));
+  border-color: var(--primary);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
+}
+
+.tab-emoji {
+  font-size: 24px;
+}
+
+.tab-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-text strong {
+  font-size: 13.5px;
+  color: #f8fafc;
+}
+
+.tab-text small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.branch-tab.active .tab-indicator {
+  background: var(--primary);
+}
+
+/* Active Store Header */
+.active-store-header {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.store-badge-icon {
+  font-size: 26px;
+}
+
+.store-badge-details h3 {
+  font-size: 15px;
+  color: #f8fafc;
+}
+
+.store-badge-details p {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Multi-Store View */
+.multi-soundbox-banner {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.multi-soundbox-banner h3 {
+  font-size: 16px;
+  margin: 6px 0 4px;
+}
+
+.multi-soundbox-banner p {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.multi-boxes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 768px) {
+  .multi-boxes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mini-soundbox-card {
+  background: #111827;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.mini-soundbox-card.active-pulse {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+.mini-soundbox-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.mini-speaker {
+  width: 50px;
+  height: 50px;
+  background: #1f2937;
+  border-radius: 50%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 20px;
+  border: 2px solid #374151;
+}
+
+.mini-soundbox-card.active-pulse .mini-speaker {
+  border-color: #10b981;
+}
+
+.mini-pulse-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid #10b981;
+  opacity: 0;
+}
+
+.mini-soundbox-card.active-pulse .mini-pulse-ring {
+  animation: mini-ring 1s infinite;
+}
+
+@keyframes mini-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.mini-led {
+  background: #030712;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+
+.mini-led-amount {
+  font-size: 15px;
+  font-weight: 800;
+  color: #34d399;
+}
+
+.mini-led-info {
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.mini-qris-thumb {
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-qris-thumb img {
+  width: 100%;
+  max-height: 130px;
+  object-fit: contain;
+}
+
+.btn-mini-test {
+  background: #1f2937;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-mini-test:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}

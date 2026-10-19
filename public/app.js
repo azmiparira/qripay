@@ -1,44 +1,109 @@
 /**
- * QRIPAY Soundbox - Client Engine
- * - Web Audio API Chime Bell Synthesizer
- * - Indonesian Web Speech Synthesis
- * - Realtime Polling & SSE Integration
+ * QRIPAY Soundbox - Client Engine (Multi-Store Edition)
+ * - Natural Indonesian Speech Synthesis (Softer, Human-like Voice)
+ * - Strict Anti-Double Speech Lock (1x Execution Guaranteed)
+ * - Multi-Branch / Anak Perusahaan Navigation & Soundbox Modules
+ * - Shopee Partner Live Poller Integration
  */
 
+// ==============================================================================
+// 1. DATA STORES (ANAK PERUSAHAAN)
+// ==============================================================================
+const STORES = {
+  pempek: {
+    id: 'pempek',
+    name: 'Pempek Bandung',
+    shortName: 'Pempek Bandung',
+    city: 'Outlet Resmi • Kota Bandung (NMID: ID7549815959905)',
+    icon: '🥘',
+    color: '#f97316',
+    qrisImage: '/qris_pempekbandung.png',
+    qrisTitle: 'Poster QRIS Resmi Pempek Bandung',
+    badgeText: 'QRIS Statis Cabang'
+  },
+  batagor: {
+    id: 'batagor',
+    name: 'Batagor Bandung',
+    shortName: 'Batagor Bandung',
+    city: 'Outlet Resmi • Kota Bandung (NMID: ID2358527015292)',
+    icon: '🥟',
+    color: '#06b6d4',
+    qrisImage: '/qris_batagorbandung.png',
+    qrisTitle: 'Poster QRIS Resmi Batagor Bandung',
+    badgeText: 'QRIS Statis Cabang'
+  },
+  soto: {
+    id: 'soto',
+    name: 'Soto Lamongan',
+    shortName: 'Soto Lamongan',
+    city: 'Outlet Resmi • Kab. Lamongan (NMID: ID8211776223979)',
+    icon: '🍲',
+    color: '#eab308',
+    qrisImage: '/qris_sotolamongan.png',
+    qrisTitle: 'Poster QRIS Resmi Soto Lamongan',
+    badgeText: 'QRIS Statis Cabang'
+  },
+  pusat: {
+    id: 'pusat',
+    name: 'Janji Jawa (Pusat)',
+    shortName: 'Janji Jawa',
+    city: 'NMID Merchant Utama (ID1025404856482)',
+    icon: '🏬',
+    color: '#3b82f6',
+    qrisImage: '/qrisawal.png',
+    qrisTitle: 'QRIS Merchant Utama Janji Jawa',
+    badgeText: 'QRIS Merchant Induk'
+  }
+};
+
+let currentStore = 'pempek'; // Default active store
 let audioUnlocked = false;
 let audioCtx = null;
 let lastProcessedId = Date.now();
-const processedIds = new Set();
 
-// Elements
+// Strict Anti-Double Speech Lock
+const spokenTxIds = new Set();
+let speechQueue = [];
+let isSpeechBusy = false;
+
+// DOM Elements
 const btnUnlockAudio = document.getElementById('btnUnlockAudio');
 const audioBtnText = document.getElementById('audioBtnText');
+const singleSoundboxView = document.getElementById('singleSoundboxView');
+const multiSoundboxView = document.getElementById('multiSoundboxView');
+const storeBadgeIcon = document.getElementById('storeBadgeIcon');
+const storeBadgeName = document.getElementById('storeBadgeName');
+const storeBadgeCity = document.getElementById('storeBadgeCity');
+const ledStoreTag = document.getElementById('ledStoreTag');
 const displayAmount = document.getElementById('displayAmount');
 const displayInfo = document.getElementById('displayInfo');
 const speakerGrill = document.getElementById('speakerGrill');
-const transactionList = document.getElementById('transactionList');
-const emptyState = document.getElementById('emptyState');
-const btnCopyWebhook = document.getElementById('btnCopyWebhook');
-const webhookUrlText = document.getElementById('webhookUrlText');
+const qrisCardTitle = document.getElementById('qrisCardTitle');
+const qrisTypeBadge = document.getElementById('qrisTypeBadge');
+const qrisImage = document.getElementById('qrisImage');
+const simDescStore = document.getElementById('simDescStore');
 const btnSimulate = document.getElementById('btnSimulate');
 const customAmountInput = document.getElementById('customAmount');
+const transactionList = document.getElementById('transactionList');
+const emptyState = document.getElementById('emptyState');
 const btnClearHistory = document.getElementById('btnClearHistory');
-const qrisFileInput = document.getElementById('qrisFileInput');
-const qrisImage = document.getElementById('qrisImage');
+const voiceSelect = document.getElementById('voiceSelect');
+const btnTestVoice = document.getElementById('btnTestVoice');
 
 // Dynamically set webhook URL to current origin
 const currentOrigin = window.location.origin;
-if (currentOrigin && !currentOrigin.startsWith('file://')) {
+const webhookUrlText = document.getElementById('webhookUrlText');
+if (webhookUrlText && currentOrigin && !currentOrigin.startsWith('file://')) {
   webhookUrlText.textContent = `${currentOrigin}/api/webhook`;
   const directLink = document.getElementById('directTestLink');
   if (directLink) {
-    directLink.href = `${currentOrigin}/api/webhook?amount=20000&payer=BCA`;
+    directLink.href = `${currentOrigin}/api/webhook?amount=20000&payer=BCA&storeId=pempek`;
   }
 }
 
-/**
- * 1. Convert Number to Indonesian Spoken Words
- */
+// ==============================================================================
+// 2. TERBILANG RUPIAH (INDONESIAN WORDS)
+// ==============================================================================
 function angkaKeTeks(nilai) {
   nilai = Math.abs(parseInt(nilai, 10)) || 0;
   const simpan = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
@@ -65,8 +130,12 @@ function angkaKeTeks(nilai) {
   return hasil.trim();
 }
 
+// ==============================================================================
+// 3. SOUND SYNTHESIS & NATURAL SPEECH ENGINE
+// ==============================================================================
+
 /**
- * 2. Synthesize Crisp Dual-Tone Cash Chime Bell (Web Audio API)
+ * Crisp Ding-Dong Cash Register Chime (Web Audio API)
  */
 function playChimeBell() {
   try {
@@ -84,124 +153,342 @@ function playChimeBell() {
     const gain1 = audioCtx.createGain();
     osc1.type = 'sine';
     osc1.frequency.setValueAtTime(587.33, now);
-    gain1.gain.setValueAtTime(0.35, now);
-    gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+    gain1.gain.setValueAtTime(0.32, now);
+    gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
     osc1.connect(gain1);
     gain1.connect(audioCtx.destination);
     osc1.start(now);
-    osc1.stop(now + 0.6);
+    osc1.stop(now + 0.55);
 
     // Tone 2: 880 Hz (A5) - Ding Dong effect
     const osc2 = audioCtx.createOscillator();
     const gain2 = audioCtx.createGain();
     osc2.type = 'sine';
     osc2.frequency.setValueAtTime(880, now + 0.12);
-    gain2.gain.setValueAtTime(0.4, now + 0.12);
-    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+    gain2.gain.setValueAtTime(0.38, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
     osc2.connect(gain2);
     gain2.connect(audioCtx.destination);
     osc2.start(now + 0.12);
-    osc2.stop(now + 0.9);
+    osc2.stop(now + 0.85);
   } catch (e) {
     console.warn('Audio chime warning:', e);
   }
 }
 
 /**
- * 3. Speak Indonesian Announcement
+ * Select the best Natural / Smooth Indonesian Voice available in the browser
  */
-function speakAnnouncement(amount, payer) {
-  // Visual Speaker Pulse
-  speakerGrill.classList.add('active');
-  
-  // Play Ding Dong Chime
-  playChimeBell();
+function getBestIndonesianVoice(profile) {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
 
-  // Speak voice after chime
-  setTimeout(() => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Stop previous
+  // 1. Check for high quality neural/natural Indonesian voices
+  const msGadis = voices.find(v => v.name.includes('Gadis') || (v.lang === 'id-ID' && v.name.includes('Natural')));
+  const googleId = voices.find(v => v.name.includes('Google Bahasa Indonesia') || v.name.includes('Indonesian Google'));
+  const msArdi = voices.find(v => v.name.includes('Ardi') || (v.lang === 'id-ID' && v.name.includes('Male')));
+  const standardId = voices.find(v => v.lang.startsWith('id') || v.lang.includes('ID'));
 
-      const terbilang = angkaKeTeks(amount);
-      const kalimat = `Pembayaran QRIS sebesar ${terbilang} rupiah berhasil diterima.`;
-      
-      const utter = new SpeechSynthesisUtterance(kalimat);
-      utter.lang = 'id-ID';
-      utter.rate = 1.0;
-      utter.pitch = 1.0;
-
-      // Select Indonesian voice if available
-      const voices = window.speechSynthesis.getVoices();
-      const idVoice = voices.find(v => v.lang.startsWith('id') || v.lang.includes('ID'));
-      if (idVoice) utter.voice = idVoice;
-
-      utter.onend = () => {
-        speakerGrill.classList.remove('active');
-      };
-      utter.onerror = () => {
-        speakerGrill.classList.remove('active');
-      };
-
-      window.speechSynthesis.speak(utter);
-    } else {
-      setTimeout(() => speakerGrill.classList.remove('active'), 1500);
-    }
-  }, 350);
+  if (profile === 'gentle_male' && msArdi) return msArdi;
+  if (msGadis) return msGadis;
+  if (googleId) return googleId;
+  return standardId || null;
 }
 
 /**
- * 4. Process Incoming Payment Event
+ * Natural Spoken Announcement with Strict Queue & Anti-Double Guarantee
  */
+function speakAnnouncement(amount, storeName, callback) {
+  playChimeBell();
+
+  setTimeout(() => {
+    if (!('speechSynthesis' in window)) {
+      if (callback) callback();
+      return;
+    }
+
+    window.speechSynthesis.cancel(); // Clear any hanging audio
+
+    const terbilang = angkaKeTeks(amount);
+    const storeLabel = storeName ? `${storeName}, ` : '';
+    // Intonasi alami dengan jeda koma santai
+    const kalimat = `Pembayaran QRIS untuk ${storeLabel}sebesar ${terbilang} rupiah, berhasil diterima.`;
+
+    const utter = new SpeechSynthesisUtterance(kalimat);
+    utter.lang = 'id-ID';
+
+    const profile = voiceSelect ? voiceSelect.value : 'natural_female';
+    const voice = getBestIndonesianVoice(profile);
+    if (voice) utter.voice = voice;
+
+    // Setting intonasi halus (softer & natural cadence)
+    if (profile === 'cheerful_female') {
+      utter.rate = 0.98;
+      utter.pitch = 1.12;
+    } else if (profile === 'gentle_male') {
+      utter.rate = 0.90;
+      utter.pitch = 0.92;
+    } else {
+      // Natural Female (Default)
+      utter.rate = 0.92;
+      utter.pitch = 1.04;
+    }
+
+    utter.onend = () => {
+      if (callback) callback();
+    };
+    utter.onerror = () => {
+      if (callback) callback();
+    };
+
+    window.speechSynthesis.speak(utter);
+  }, 400);
+}
+
+/**
+ * Sequential Speech Queue Processor (Guarantees STRICTLY 1x Audio Execution)
+ */
+function processSpeechQueue() {
+  if (isSpeechBusy || speechQueue.length === 0) return;
+  isSpeechBusy = true;
+
+  const item = speechQueue.shift();
+  triggerSoundboxAnimation(item.storeId);
+
+  speakAnnouncement(item.amount, item.storeName, () => {
+    isSpeechBusy = false;
+    stopSoundboxAnimation(item.storeId);
+    setTimeout(processSpeechQueue, 300);
+  });
+}
+
+function queueAnnouncement(tx) {
+  const uniqueKey = String(tx.transactionId || tx.id);
+  if (spokenTxIds.has(uniqueKey)) {
+    console.log(`[Anti-Double] Ignored duplicate speech trigger for ID: ${uniqueKey}`);
+    return;
+  }
+  spokenTxIds.add(uniqueKey);
+
+  speechQueue.push({
+    storeId: tx.storeId || 'pempek',
+    storeName: tx.storeName || STORES[tx.storeId]?.name || 'Pempek Bandung',
+    amount: tx.amount,
+    payer: tx.payer
+  });
+
+  processSpeechQueue();
+}
+
+// ==============================================================================
+// 4. ANIMATION & UI FEED CONTROLLERS
+// ==============================================================================
+
+function triggerSoundboxAnimation(storeId) {
+  // 1. Single View Speaker Grill
+  if (speakerGrill) speakerGrill.classList.add('active');
+
+  // 2. Multi View Mini Box Pulse
+  const miniBox = document.getElementById(`miniBox${capitalize(storeId)}`);
+  if (miniBox) miniBox.classList.add('active-pulse');
+}
+
+function stopSoundboxAnimation(storeId) {
+  if (speakerGrill) speakerGrill.classList.remove('active');
+  const miniBox = document.getElementById(`miniBox${capitalize(storeId)}`);
+  if (miniBox) miniBox.classList.remove('active-pulse');
+}
+
+function capitalize(s) {
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function handlePaymentEvent(tx) {
   if (!tx || !tx.amount) return;
-  if (processedIds.has(tx.id)) return;
-  processedIds.add(tx.id);
 
-  // Update LED Display
-  displayAmount.textContent = `Rp ${Number(tx.amount).toLocaleString('id-ID')}`;
-  displayInfo.textContent = `LUNAS via ${tx.payer || 'QRIS'} • ${new Date(tx.timestamp).toLocaleTimeString('id-ID')}`;
+  const storeInfo = STORES[tx.storeId] || STORES.pempek;
+  const storeName = tx.storeName || storeInfo.name;
 
-  // Voice Announcement
-  speakAnnouncement(tx.amount, tx.payer);
+  // 1. Update Large LED Screen in Single View
+  if (displayAmount) displayAmount.textContent = `Rp ${Number(tx.amount).toLocaleString('id-ID')}`;
+  if (displayInfo) displayInfo.textContent = `LUNAS (${storeName}) • ${tx.payer || 'QRIS'} • ${new Date(tx.timestamp).toLocaleTimeString('id-ID')}`;
 
-  // Add to Feed UI
+  // 2. Update Mini LED in Multi View
+  const miniAmount = document.getElementById(`miniAmount${capitalize(tx.storeId)}`);
+  const miniInfo = document.getElementById(`miniInfo${capitalize(tx.storeId)}`);
+  if (miniAmount) miniAmount.textContent = `+Rp ${Number(tx.amount).toLocaleString('id-ID')}`;
+  if (miniInfo) miniInfo.textContent = `Lunas via ${tx.payer || 'QRIS'}`;
+
+  // 3. Queue Spoken Audio (Strict 1x)
+  queueAnnouncement(tx);
+
+  // 4. Add To Feed List
   addTransactionToFeed(tx);
 
-  // Reset LED display back to STANDBY after 12 seconds
+  // 5. Reset Large LED after 12s
   setTimeout(() => {
-    if (displayAmount.textContent === `Rp ${Number(tx.amount).toLocaleString('id-ID')}`) {
+    if (displayAmount && displayAmount.textContent === `Rp ${Number(tx.amount).toLocaleString('id-ID')}`) {
       displayAmount.textContent = 'STANDBY';
-      displayInfo.textContent = 'Menunggu pembayaran QRIS dari pembeli...';
+      displayInfo.textContent = `Menunggu pembayaran QRIS dari pembeli...`;
+    }
+    if (miniAmount && miniAmount.textContent === `+Rp ${Number(tx.amount).toLocaleString('id-ID')}`) {
+      miniAmount.textContent = 'STANDBY';
+      miniInfo.textContent = 'Siap melayani';
     }
   }, 12000);
 }
 
-/**
- * 5. Add Transaction Item to Feed List
- */
 function addTransactionToFeed(tx) {
-  if (emptyState) {
-    emptyState.style.display = 'none';
-  }
+  if (emptyState) emptyState.style.display = 'none';
 
   const item = document.createElement('div');
   item.className = 'tx-item';
   const time = new Date(tx.timestamp).toLocaleTimeString('id-ID');
+  const storeInfo = STORES[tx.storeId] || STORES.pempek;
+  const storeName = tx.storeName || storeInfo.name;
   
   item.innerHTML = `
     <div class="tx-left">
-      <span class="tx-payer">${tx.payer || 'Pembeli QRIS'}</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="badge-pill" style="background:rgba(255,255,255,0.08); font-size:11px; padding:2px 6px;">${storeInfo.icon || '🏪'} ${storeName}</span>
+        <span class="tx-payer">${tx.payer || 'Pembeli QRIS'}</span>
+      </div>
       <span class="tx-meta">Pukul ${time} • ${tx.source || 'Shopee Partner'}</span>
     </div>
-    <div class="tx-amount">+Rp ${Number(tx.amount).toLocaleString('id-ID')}</div>
+    <div class="tx-amount" style="color: ${storeInfo.color || '#10b981'};">+Rp ${Number(tx.amount).toLocaleString('id-ID')}</div>
   `;
 
   transactionList.insertBefore(item, transactionList.firstChild);
 }
 
-/**
- * 6. Audio Unlocker (Bypass Autoplay Policy)
- */
+// ==============================================================================
+// 5. BRANCH SWITCHER (ANAK PERUSAHAAN NAVIGATION)
+// ==============================================================================
+
+function switchStore(storeKey) {
+  currentStore = storeKey;
+
+  // Update tabs active state
+  document.querySelectorAll('.branch-tab').forEach(tab => {
+    if (tab.getAttribute('data-store') === storeKey) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+
+  if (storeKey === 'all') {
+    // Show Multi-Store View
+    if (singleSoundboxView) singleSoundboxView.style.display = 'none';
+    if (multiSoundboxView) multiSoundboxView.style.display = 'block';
+  } else {
+    // Show Single Store View
+    if (multiSoundboxView) multiSoundboxView.style.display = 'none';
+    if (singleSoundboxView) singleSoundboxView.style.display = 'block';
+
+    const store = STORES[storeKey] || STORES.pempek;
+    if (storeBadgeIcon) storeBadgeIcon.textContent = store.icon;
+    if (storeBadgeName) storeBadgeName.textContent = store.name;
+    if (storeBadgeCity) storeBadgeCity.textContent = store.city;
+    if (ledStoreTag) ledStoreTag.textContent = `KASIR ${store.name.toUpperCase()}`;
+    if (qrisCardTitle) qrisCardTitle.textContent = store.qrisTitle;
+    if (qrisTypeBadge) qrisTypeBadge.textContent = store.badgeText;
+    if (qrisImage) qrisImage.src = store.qrisImage;
+    if (simDescStore) simDescStore.textContent = `Menguji suara soundbox khusus toko ${store.name}`;
+  }
+}
+
+// Bind Branch Tabs
+document.querySelectorAll('.branch-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const storeKey = tab.getAttribute('data-store');
+    switchStore(storeKey);
+  });
+});
+
+// Mini test buttons inside multi-store view
+document.querySelectorAll('.btn-mini-test').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const storeKey = btn.getAttribute('data-store');
+    const amount = btn.getAttribute('data-amount') || 15000;
+    triggerSimulation(amount, storeKey);
+  });
+});
+
+// Voice Test Button
+if (btnTestVoice) {
+  btnTestVoice.addEventListener('click', () => {
+    if (!audioUnlocked) unlockAudio();
+    const store = STORES[currentStore === 'all' ? 'pempek' : currentStore];
+    playChimeBell();
+    setTimeout(() => {
+      speakAnnouncement(25000, store.name);
+    }, 300);
+  });
+}
+
+// ==============================================================================
+// 6. SIMULATION & SOUND TESTING
+// ==============================================================================
+
+document.querySelectorAll('.chip-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const amount = btn.getAttribute('data-amount');
+    const store = currentStore === 'all' ? 'pempek' : currentStore;
+    triggerSimulation(amount, store);
+  });
+});
+
+if (btnSimulate) {
+  btnSimulate.addEventListener('click', () => {
+    const val = customAmountInput ? (customAmountInput.value || 15000) : 15000;
+    const store = currentStore === 'all' ? 'pempek' : currentStore;
+    triggerSimulation(val, store);
+  });
+}
+
+async function triggerSimulation(amount, storeKey = 'pempek') {
+  if (!audioUnlocked) unlockAudio();
+  const store = STORES[storeKey] || STORES.pempek;
+
+  try {
+    const res = await fetch('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: parseInt(amount, 10),
+        payer: 'Tes Pembeli QRIS',
+        storeId: store.id,
+        storeName: store.name
+      })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.transaction) {
+        handlePaymentEvent(json.transaction);
+      }
+    }
+  } catch (e) {
+    // Local fallback
+    handlePaymentEvent({
+      id: Date.now(),
+      transactionId: String(Date.now()),
+      amount: parseInt(amount, 10),
+      storeId: store.id,
+      storeName: store.name,
+      payer: 'Tes Suara Mandiri',
+      source: 'Simulasi Lokal',
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+// ==============================================================================
+// 7. AUDIO UNLOCKER (BROWSER AUTOPLAY POLICY)
+// ==============================================================================
+
 function unlockAudio() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -210,33 +497,34 @@ function unlockAudio() {
     audioCtx.resume();
   }
 
-  // Speak a silent short test
   if ('speechSynthesis' in window) {
-    const silentTest = new SpeechSynthesisUtterance('Soundbox siap');
-    silentTest.lang = 'id-ID';
-    silentTest.volume = 0.5;
-    window.speechSynthesis.speak(silentTest);
+    const silent = new SpeechSynthesisUtterance('');
+    window.speechSynthesis.speak(silent);
   }
 
   audioUnlocked = true;
-  btnUnlockAudio.classList.add('unlocked');
-  audioBtnText.textContent = 'SUARA SOUNDBOX SUDAH AKTIF ✅';
+  if (btnUnlockAudio) btnUnlockAudio.classList.add('unlocked');
+  if (audioBtnText) audioBtnText.textContent = 'SUARA SOUNDBOX SUDAH AKTIF ✅';
 }
 
-btnUnlockAudio.addEventListener('click', unlockAudio);
+if (btnUnlockAudio) btnUnlockAudio.addEventListener('click', unlockAudio);
 
-/**
- * 7. Realtime Polling Loop (/api/poll) - Guaranteed on Vercel Serverless
- */
+// ==============================================================================
+// 8. REALTIME POLLING ROUTINES (Anti-Double Guarded)
+// ==============================================================================
+
 async function pollTransactions() {
   try {
     const res = await fetch(`/api/poll?since=${lastProcessedId}`);
     if (res.ok) {
       const data = await res.json();
       if (data.hasNew && Array.isArray(data.events)) {
-        // Process new events from oldest to newest
         data.events.reverse().forEach(ev => {
-          handlePaymentEvent(ev);
+          // If transaction has already been spoken by Shopee poller, skip
+          const uniqueKey = String(ev.transactionId || ev.id);
+          if (!spokenTxIds.has(uniqueKey)) {
+            handlePaymentEvent(ev);
+          }
           if (ev.id > lastProcessedId) {
             lastProcessedId = ev.id;
           }
@@ -247,97 +535,16 @@ async function pollTransactions() {
       }
     }
   } catch (err) {
-    // Silent network retry
+    // Silent
   } finally {
-    setTimeout(pollTransactions, 1500);
+    setTimeout(pollTransactions, 2000);
   }
 }
 
-// Start polling
 pollTransactions();
 
-/**
- * 8. Quick Simulation Triggers
- */
-document.querySelectorAll('.chip-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const amount = btn.getAttribute('data-amount');
-    triggerSimulation(amount);
-  });
-});
-
-btnSimulate.addEventListener('click', () => {
-  const val = customAmountInput.value || 15000;
-  triggerSimulation(val);
-});
-
-async function triggerSimulation(amount) {
-  if (!audioUnlocked) unlockAudio();
-  try {
-    const res = await fetch('/api/simulate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, payer: 'Tes Pembeli QRIS' })
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.transaction) {
-        handlePaymentEvent(json.transaction);
-      }
-    }
-  } catch (e) {
-    // Fallback direct local simulation
-    handlePaymentEvent({
-      id: Date.now(),
-      amount: parseInt(amount, 10),
-      payer: 'Tes Suara Mandiri',
-      source: 'Simulasi Lokal',
-      timestamp: new Date().toISOString()
-    });
-  }
-}
-
-/**
- * 9. Copy Webhook URL Button
- */
-btnCopyWebhook.addEventListener('click', () => {
-  const text = webhookUrlText.textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btnCopyWebhook.textContent;
-    btnCopyWebhook.textContent = 'Tersalin! ✅';
-    setTimeout(() => btnCopyWebhook.textContent = orig, 2000);
-  }).catch(() => {
-    prompt('Salin URL Webhook berikut:', text);
-  });
-});
-
-/**
- * 10. Clear History
- */
-btnClearHistory.addEventListener('click', () => {
-  transactionList.innerHTML = '';
-  if (emptyState) {
-    emptyState.style.display = 'block';
-    transactionList.appendChild(emptyState);
-  }
-});
-
-/**
- * 11. Custom QRIS File Upload Preview
- */
-qrisFileInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      qrisImage.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-});
-
 // ==============================================================================
-// 12. SHOPEE PARTNER API GATEWAY CONTROLLER
+// 9. SHOPEE PARTNER LIVE POLLER CONTROLLER
 // ==============================================================================
 
 const shopeeTokenInput = document.getElementById('shopeeTokenInput');
@@ -355,8 +562,7 @@ const pollStatusText = document.getElementById('pollStatusText');
 let isShopeeConnected = false;
 let shopeePollTimer = null;
 
-// Toggle Visibility
-if (btnToggleTokenVisibility) {
+if (btnToggleTokenVisibility && shopeeTokenInput) {
   btnToggleTokenVisibility.addEventListener('click', () => {
     if (shopeeTokenInput.type === 'password') {
       shopeeTokenInput.type = 'text';
@@ -368,20 +574,20 @@ if (btnToggleTokenVisibility) {
   });
 }
 
-// Connect Shopee Account
 async function connectShopee(token, isAuto = false) {
   if (!token || !token.trim()) {
     if (!isAuto) alert('Silakan masukkan SHOPEE_TOKEN terlebih dahulu!');
     return;
   }
 
-  // Bersihkan spasi dan tanda petik jika user menyalin beserta tanda kutip
   const cleanToken = token.trim().replace(/^["']|["']$/g, '');
-  shopeeTokenInput.value = cleanToken;
-  btnConnectShopee.disabled = true;
-  connectBtnText.textContent = 'Memverifikasi ke Shopee...';
-  tokenHintText.textContent = 'Menghubungkan ke server ShopeePay Partner...';
-  tokenHintText.style.color = '#38bdf8';
+  if (shopeeTokenInput) shopeeTokenInput.value = cleanToken;
+  if (btnConnectShopee) btnConnectShopee.disabled = true;
+  if (connectBtnText) connectBtnText.textContent = 'Memverifikasi ke Shopee...';
+  if (tokenHintText) {
+    tokenHintText.textContent = 'Menghubungkan ke server ShopeePay Partner...';
+    tokenHintText.style.color = '#38bdf8';
+  }
 
   try {
     const res = await fetch('/api/shopee/connect', {
@@ -396,57 +602,65 @@ async function connectShopee(token, isAuto = false) {
       isShopeeConnected = true;
       localStorage.setItem('qripay_shopee_token', cleanToken);
 
-      shopeeStatusBadge.className = 'badge-pill badge-online';
-      shopeeStatusBadge.textContent = '🟢 Terhubung & Aktif';
-      connectBtnText.textContent = 'Perbarui Token';
-      tokenHintText.textContent = `✅ Terhubung! Akun Shopee Partner Anda aktif. Soundbox siap membunyikan notifikasi saat pembeli bayar ke QRIS!`;
-      tokenHintText.style.color = '#34d399';
+      if (shopeeStatusBadge) {
+        shopeeStatusBadge.className = 'badge-pill badge-online';
+        shopeeStatusBadge.textContent = '🟢 Terhubung & Aktif';
+      }
+      if (connectBtnText) connectBtnText.textContent = 'Perbarui Token';
+      if (tokenHintText) {
+        tokenHintText.textContent = `✅ Terhubung! Akun Shopee Partner Anda aktif. Soundbox siap mengumumkan transaksi untuk anak perusahaan!`;
+        tokenHintText.style.color = '#34d399';
+      }
 
-      btnDisconnectShopee.style.display = 'inline-block';
-      btnCheckMutasi.style.display = 'inline-block';
-      autoPollBox.style.display = 'flex';
+      if (btnDisconnectShopee) btnDisconnectShopee.style.display = 'inline-block';
+      if (btnCheckMutasi) btnCheckMutasi.style.display = 'inline-block';
+      if (autoPollBox) autoPollBox.style.display = 'flex';
 
-      // Auto unlock audio
       if (!audioUnlocked) unlockAudio();
-
       startShopeePolling();
     } else {
-      throw new Error(data.message || 'Token ditolak oleh server Shopee');
+      throw new Error(data.message || 'Token ditolak');
     }
   } catch (err) {
     isShopeeConnected = false;
-    shopeeStatusBadge.className = 'badge-pill badge-warning';
-    shopeeStatusBadge.textContent = 'Gagal Terhubung ⚠️';
-    tokenHintText.textContent = `❌ ${err.message}. Pastikan token diawali "B:" dan belum kadaluarsa.`;
-    tokenHintText.style.color = '#f87171';
-    connectBtnText.textContent = 'Sambungkan Akun Shopee';
+    if (shopeeStatusBadge) {
+      shopeeStatusBadge.className = 'badge-pill badge-warning';
+      shopeeStatusBadge.textContent = 'Gagal Terhubung ⚠️';
+    }
+    if (tokenHintText) {
+      tokenHintText.textContent = `❌ ${err.message}. Pastikan token diawali "B:".`;
+      tokenHintText.style.color = '#f87171';
+    }
+    if (connectBtnText) connectBtnText.textContent = 'Sambungkan Akun Shopee';
   } finally {
-    btnConnectShopee.disabled = false;
+    if (btnConnectShopee) btnConnectShopee.disabled = false;
   }
 }
 
-// Disconnect Shopee Account
 async function disconnectShopee() {
-  if (!confirm('Apakah Anda yakin ingin memutuskan koneksi akun Shopee Partner?')) return;
+  if (!confirm('Putuskan koneksi ke Shopee Partner?')) return;
   try {
     await fetch('/api/shopee/disconnect', { method: 'POST' });
   } catch (e) {}
 
   localStorage.removeItem('qripay_shopee_token');
   isShopeeConnected = false;
-  shopeeTokenInput.value = '';
-  shopeeStatusBadge.className = 'badge-pill badge-offline';
-  shopeeStatusBadge.textContent = 'Belum Terhubung';
-  connectBtnText.textContent = 'Sambungkan Akun Shopee';
-  tokenHintText.textContent = 'Akun Shopee Partner telah diputuskan.';
-  tokenHintText.style.color = 'var(--text-muted)';
-  btnDisconnectShopee.style.display = 'none';
-  btnCheckMutasi.style.display = 'none';
-  autoPollBox.style.display = 'none';
+  if (shopeeTokenInput) shopeeTokenInput.value = '';
+  if (shopeeStatusBadge) {
+    shopeeStatusBadge.className = 'badge-pill badge-offline';
+    shopeeStatusBadge.textContent = 'Belum Terhubung';
+  }
+  if (connectBtnText) connectBtnText.textContent = 'Sambungkan Akun Shopee';
+  if (tokenHintText) {
+    tokenHintText.textContent = 'Akun Shopee Partner telah diputuskan.';
+    tokenHintText.style.color = 'var(--text-muted)';
+  }
+  if (btnDisconnectShopee) btnDisconnectShopee.style.display = 'none';
+  if (btnCheckMutasi) btnCheckMutasi.style.display = 'none';
+  if (autoPollBox) autoPollBox.style.display = 'none';
   if (shopeePollTimer) clearTimeout(shopeePollTimer);
 }
 
-// Auto-Poller Loop: Checks for incoming Shopee transactions
 async function pollShopeeLoop() {
   if (!isShopeeConnected || (cbAutoPoll && !cbAutoPoll.checked)) {
     shopeePollTimer = setTimeout(pollShopeeLoop, 4000);
@@ -454,7 +668,8 @@ async function pollShopeeLoop() {
   }
 
   try {
-    const res = await fetch('/api/shopee/poll-transactions');
+    const store = STORES[currentStore === 'all' ? 'pempek' : currentStore];
+    const res = await fetch(`/api/shopee/poll-transactions?storeId=${store.id}&storeName=${encodeURIComponent(store.name)}`);
     const data = await res.json();
 
     if (data.connected && data.success) {
@@ -469,13 +684,13 @@ async function pollShopeeLoop() {
       }
     } else if (data.tokenValid === false) {
       if (pollStatusText) pollStatusText.textContent = 'Token Kadaluarsa! ⚠️';
-      shopeeStatusBadge.className = 'badge-pill badge-warning';
-      shopeeStatusBadge.textContent = 'Sesi Kadaluarsa ⚠️';
-      tokenHintText.textContent = 'Sesi login Shopee Anda telah berakhir di server Shopee. Silakan refresh web Shopee Partner dan salin token baru.';
-      tokenHintText.style.color = '#f87171';
+      if (shopeeStatusBadge) {
+        shopeeStatusBadge.className = 'badge-pill badge-warning';
+        shopeeStatusBadge.textContent = 'Sesi Kadaluarsa ⚠️';
+      }
     }
   } catch (err) {
-    if (pollStatusText) pollStatusText.textContent = 'Koneksi lambat, mencoba lagi...';
+    if (pollStatusText) pollStatusText.textContent = 'Mencoba menghubungkan kembali...';
   } finally {
     shopeePollTimer = setTimeout(pollShopeeLoop, 4000);
   }
@@ -486,8 +701,8 @@ function startShopeePolling() {
   pollShopeeLoop();
 }
 
-// Check Mutasi Manual Button
 async function checkShopeeMutasi() {
+  if (!btnCheckMutasi) return;
   btnCheckMutasi.disabled = true;
   btnCheckMutasi.textContent = 'Mengambil Data...';
   try {
@@ -495,10 +710,12 @@ async function checkShopeeMutasi() {
     const data = await res.json();
     if (data.success && data.data?.transactions) {
       const list = data.data.transactions;
-      alert(`✅ Berhasil mengambil ${list.length} mutasi terbaru dari Shopee Partner!\nTotal: Rp ${parseInt(data.total_amount, 10).toLocaleString('id-ID')}`);
+      alert(`✅ Berhasil mengambil ${list.length} mutasi terbaru!\nTotal: Rp ${parseInt(data.total_amount, 10).toLocaleString('id-ID')}`);
       list.slice(0, 5).forEach(tx => {
         addTransactionToFeed({
           amount: tx.amount,
+          storeId: currentStore === 'all' ? 'pempek' : currentStore,
+          storeName: STORES[currentStore === 'all' ? 'pempek' : currentStore].name,
           payer: tx.issuer || 'ShopeePay',
           source: 'Mutasi Shopee (Manual)',
           timestamp: new Date().toISOString()
@@ -515,29 +732,28 @@ async function checkShopeeMutasi() {
   }
 }
 
-// Bind Button Events
-if (btnConnectShopee) {
-  btnConnectShopee.addEventListener('click', () => {
-    connectShopee(shopeeTokenInput.value);
+if (btnConnectShopee) btnConnectShopee.addEventListener('click', () => connectShopee(shopeeTokenInput.value));
+if (btnDisconnectShopee) btnDisconnectShopee.addEventListener('click', disconnectShopee);
+if (btnCheckMutasi) btnCheckMutasi.addEventListener('click', checkShopeeMutasi);
+
+if (btnClearHistory) {
+  btnClearHistory.addEventListener('click', () => {
+    transactionList.innerHTML = '';
+    if (emptyState) {
+      emptyState.style.display = 'block';
+      transactionList.appendChild(emptyState);
+    }
   });
 }
 
-if (btnDisconnectShopee) {
-  btnDisconnectShopee.addEventListener('click', disconnectShopee);
-}
-
-if (btnCheckMutasi) {
-  btnCheckMutasi.addEventListener('click', checkShopeeMutasi);
-}
-
-// On Startup: Auto restore saved token
+// Startup: Auto restore saved token
 const savedShopeeToken = localStorage.getItem('qripay_shopee_token');
 if (savedShopeeToken) {
-  shopeeTokenInput.value = savedShopeeToken;
+  if (shopeeTokenInput) shopeeTokenInput.value = savedShopeeToken;
   connectShopee(savedShopeeToken, true);
 }
 
-// Load Voices on Startup
+// Load voices
 if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = () => {
     window.speechSynthesis.getVoices();

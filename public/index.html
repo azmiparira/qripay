@@ -32,6 +32,72 @@
       </div>
     </header>
 
+    <!-- Branch / Anak Perusahaan Navigation Bar -->
+    <section class="branch-nav-card">
+      <div class="branch-nav-top">
+        <div class="branch-title-group">
+          <span class="branch-nav-badge">MULTI-STORE OUTLET</span>
+          <h2 class="branch-nav-title">Pilih Cabang / Anak Perusahaan</h2>
+        </div>
+        <div class="voice-preset-group">
+          <label for="voiceSelect">Karakter Suara:</label>
+          <select id="voiceSelect" class="select-voice">
+            <option value="natural_female">👩 Wanita Halus & Lembut (Natural)</option>
+            <option value="cheerful_female">👧 Kasir Ceria & Ramah</option>
+            <option value="gentle_male">👨 Pria Santun</option>
+          </select>
+          <button id="btnTestVoice" class="btn-voice-test" title="Uji Coba Suara">Tes 🔊</button>
+        </div>
+      </div>
+
+      <div class="branch-tabs" id="branchTabs">
+        <button class="branch-tab active" data-store="pempek">
+          <span class="tab-emoji">🥘</span>
+          <div class="tab-text">
+            <strong>Pempek Bandung</strong>
+            <small>Cabang Bandung • ID75498</small>
+          </div>
+          <span class="tab-indicator"></span>
+        </button>
+
+        <button class="branch-tab" data-store="batagor">
+          <span class="tab-emoji">🥟</span>
+          <div class="tab-text">
+            <strong>Batagor Bandung</strong>
+            <small>Cabang Bandung • ID23585</small>
+          </div>
+          <span class="tab-indicator"></span>
+        </button>
+
+        <button class="branch-tab" data-store="soto">
+          <span class="tab-emoji">🍲</span>
+          <div class="tab-text">
+            <strong>Soto Lamongan</strong>
+            <small>Cabang Lamongan • ID82117</small>
+          </div>
+          <span class="tab-indicator"></span>
+        </button>
+
+        <button class="branch-tab" data-store="all">
+          <span class="tab-emoji">🏢</span>
+          <div class="tab-text">
+            <strong>Semua Cabang</strong>
+            <small>Owner Multi-Monitor View</small>
+          </div>
+          <span class="tab-indicator"></span>
+        </button>
+
+        <button class="branch-tab" data-store="pusat">
+          <span class="tab-emoji">🏬</span>
+          <div class="tab-text">
+            <strong>Janji Jawa (Pusat)</strong>
+            <small>NMID Utama • ID10254</small>
+          </div>
+          <span class="tab-indicator"></span>
+        </button>
+      </div>
+    </section>
+
     <!-- Main Content -->
     <main class="main-grid">
       <!-- Left Column: Virtual Soundbox & QRIS Display -->
@@ -49,68 +115,152 @@
           <p class="audio-hint">⚠️ Browser wajib diizinkan bersuara 1 kali agar notifikasi dapat berbunyi otomatis saat ada pembayaran masuk.</p>
         </div>
 
-        <!-- Virtual Soundbox Hardware Device -->
-        <div class="virtual-soundbox">
-          <div class="device-body">
-            <!-- Speaker Grill Animation -->
-            <div class="speaker-grill" id="speakerGrill">
-              <div class="pulse-ring ring-1"></div>
-              <div class="pulse-ring ring-2"></div>
-              <div class="pulse-ring ring-3"></div>
-              <div class="speaker-icon">
-                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                </svg>
+        <!-- 1. SINGLE STORE SOUNDBOX VIEW -->
+        <div id="singleSoundboxView">
+          <!-- Active Store Banner Pill -->
+          <div class="active-store-header" id="activeStoreHeader">
+            <span class="store-badge-icon" id="storeBadgeIcon">🥘</span>
+            <div class="store-badge-details">
+              <h3 id="storeBadgeName">Pempek Bandung</h3>
+              <p id="storeBadgeCity">Outlet Resmi • Kota Bandung (NMID: ID7549815959905)</p>
+            </div>
+          </div>
+
+          <!-- Virtual Soundbox Hardware Device -->
+          <div class="virtual-soundbox" id="mainSoundboxCard">
+            <div class="device-body">
+              <!-- Speaker Grill Animation -->
+              <div class="speaker-grill" id="speakerGrill">
+                <div class="pulse-ring ring-1"></div>
+                <div class="pulse-ring ring-2"></div>
+                <div class="pulse-ring ring-3"></div>
+                <div class="speaker-icon">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Digital LED Screen -->
+              <div class="led-screen">
+                <span class="led-label" id="ledStoreTag">KASIR PEMPEK BANDUNG</span>
+                <div class="led-amount" id="displayAmount">STANDBY</div>
+                <div class="led-info" id="displayInfo">Menunggu pembayaran QRIS dari pembeli...</div>
               </div>
             </div>
+          </div>
 
-            <!-- Digital LED Screen -->
-            <div class="led-screen">
-              <span class="led-label">STATUS PEMBAYARAN KASIR</span>
-              <div class="led-amount" id="displayAmount">STANDBY</div>
-              <div class="led-info" id="displayInfo">Menunggu pembayaran QRIS dari pembeli...</div>
+          <!-- Static QRIS Display Card -->
+          <div class="card qris-card">
+            <div class="card-header">
+              <div>
+                <h3 id="qrisCardTitle">Poster QRIS Resmi Pempek Bandung</h3>
+                <p class="card-desc">Scan untuk menguji pembayaran ke cabang ini</p>
+              </div>
+              <span class="badge-pill" id="qrisTypeBadge">QRIS Statis Cabang</span>
+            </div>
+            <div class="qris-content">
+              <div class="qris-image-wrapper">
+                <img id="qrisImage" src="/qris_pempekbandung.png" alt="QRIS Toko">
+              </div>
+              <p class="qris-instruction" id="qrisInstructionText">Silakan scan kode QR di atas menggunakan aplikasi apa saja (BCA, Mandiri, BRI, DANA, GoPay, ShopeePay, OVO).</p>
+            </div>
+          </div>
+
+          <!-- Quick Test Simulator -->
+          <div class="card simulator-card">
+            <div class="card-header">
+              <div>
+                <h3>Simulasi Pembayaran Cabang Ini</h3>
+                <p class="card-desc" id="simDescStore">Menguji suara soundbox khusus toko Pempek Bandung</p>
+              </div>
+            </div>
+            <div class="chip-grid">
+              <button class="chip-btn" data-amount="10000">Rp 10.000</button>
+              <button class="chip-btn" data-amount="20000">Rp 20.000</button>
+              <button class="chip-btn" data-amount="35000">Rp 35.000</button>
+              <button class="chip-btn" data-amount="50000">Rp 50.000</button>
+            </div>
+            <div class="custom-sim-row">
+              <div class="input-group">
+                <span class="currency-prefix">Rp</span>
+                <input type="number" id="customAmount" placeholder="Nominal lain" value="15000">
+              </div>
+              <button id="btnSimulate" class="btn-primary">Tes Bunyi Toko Ini 🔔</button>
             </div>
           </div>
         </div>
 
-        <!-- Static QRIS Display Card -->
-        <div class="card qris-card">
-          <div class="card-header">
-            <h3>QRIS Statis Toko Anda</h3>
-            <span class="badge-pill">Statis (Bebas Nominal)</span>
+        <!-- 2. MULTI-STORE OWNER VIEW (Shown when 'Semua Cabang' selected) -->
+        <div id="multiSoundboxView" style="display: none;">
+          <div class="multi-soundbox-banner">
+            <span class="badge-pill badge-online">MONITOR PUSAT AKTIF</span>
+            <h3>Dashboard Soundbox 3 Anak Perusahaan</h3>
+            <p>Masing-masing soundbox di bawah mewakili perangkat fisik di tiap cabang toko.</p>
           </div>
-          <div class="qris-content">
-            <div class="qris-image-wrapper">
-              <img id="qrisImage" src="/qris.png" alt="QRIS Statis" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=00020101021126570011ID.DANA.WWW011893600915351010223202095101022320303UMI51440014ID.CO.QRIS.WWW0215ID10232917905590303UMI5204481453033605802ID5909Azmi+Shop6013Kab.+Sukabumi6105433536304CA17'">
-            </div>
-            <p class="qris-instruction">Silakan scan kode QR di atas menggunakan aplikasi perbankan apa saja (BCA, Mandiri, BRI, DANA, GoPay, ShopeePay, OVO).</p>
-            <div class="qris-custom-upload">
-              <label for="qrisFileInput" class="btn-outline-sm">Ganti Gambar QRIS Lain 📷</label>
-              <input type="file" id="qrisFileInput" accept="image/*" style="display:none;">
-            </div>
-          </div>
-        </div>
 
-        <!-- Quick Test Simulator -->
-        <div class="card simulator-card">
-          <div class="card-header">
-            <h3>Simulasi Suara Instan (Uji Coba Cepat)</h3>
-          </div>
-          <p class="sim-desc">Klik nominal di bawah untuk menguji apakah suara soundbox di HP/laptop Anda berbunyi:</p>
-          <div class="chip-grid">
-            <button class="chip-btn" data-amount="5000">Rp 5.000</button>
-            <button class="chip-btn" data-amount="10000">Rp 10.000</button>
-            <button class="chip-btn" data-amount="25000">Rp 25.000</button>
-            <button class="chip-btn" data-amount="50000">Rp 50.000</button>
-          </div>
-          <div class="custom-sim-row">
-            <div class="input-group">
-              <span class="currency-prefix">Rp</span>
-              <input type="number" id="customAmount" placeholder="Nominal lain" value="15000">
+          <div class="multi-boxes-grid">
+            <!-- Box 1: Pempek Bandung -->
+            <div class="mini-soundbox-card" id="miniBoxPempek">
+              <div class="mini-soundbox-header">
+                <span class="mini-icon">🥘</span>
+                <strong>Pempek Bandung</strong>
+              </div>
+              <div class="mini-speaker" id="miniSpeakerPempek">
+                <div class="mini-pulse-ring"></div>
+                <span>🔊</span>
+              </div>
+              <div class="mini-led">
+                <div class="mini-led-amount" id="miniAmountPempek">STANDBY</div>
+                <div class="mini-led-info" id="miniInfoPempek">Siap melayani</div>
+              </div>
+              <div class="mini-qris-thumb">
+                <img src="/qris_pempekbandung_scan.png" alt="QR Pempek">
+              </div>
+              <button class="btn-mini-test" data-store="pempek" data-amount="15000">Tes Bayar Rp 15.000</button>
             </div>
-            <button id="btnSimulate" class="btn-primary">Tes Bunyi 🔔</button>
+
+            <!-- Box 2: Batagor Bandung -->
+            <div class="mini-soundbox-card" id="miniBoxBatagor">
+              <div class="mini-soundbox-header">
+                <span class="mini-icon">🥟</span>
+                <strong>Batagor Bandung</strong>
+              </div>
+              <div class="mini-speaker" id="miniSpeakerBatagor">
+                <div class="mini-pulse-ring"></div>
+                <span>🔊</span>
+              </div>
+              <div class="mini-led">
+                <div class="mini-led-amount" id="miniAmountBatagor">STANDBY</div>
+                <div class="mini-led-info" id="miniInfoBatagor">Siap melayani</div>
+              </div>
+              <div class="mini-qris-thumb">
+                <img src="/qris_batagorbandung_scan.png" alt="QR Batagor">
+              </div>
+              <button class="btn-mini-test" data-store="batagor" data-amount="20000">Tes Bayar Rp 20.000</button>
+            </div>
+
+            <!-- Box 3: Soto Lamongan -->
+            <div class="mini-soundbox-card" id="miniBoxSoto">
+              <div class="mini-soundbox-header">
+                <span class="mini-icon">🍲</span>
+                <strong>Soto Lamongan</strong>
+              </div>
+              <div class="mini-speaker" id="miniSpeakerSoto">
+                <div class="mini-pulse-ring"></div>
+                <span>🔊</span>
+              </div>
+              <div class="mini-led">
+                <div class="mini-led-amount" id="miniAmountSoto">STANDBY</div>
+                <div class="mini-led-info" id="miniInfoSoto">Siap melayani</div>
+              </div>
+              <div class="mini-qris-thumb">
+                <img src="/qris_sotolamongan_scan.png" alt="QR Soto">
+              </div>
+              <button class="btn-mini-test" data-store="soto" data-amount="25000">Tes Bayar Rp 25.000</button>
+            </div>
           </div>
         </div>
 
