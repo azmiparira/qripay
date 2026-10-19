@@ -631,3 +631,305 @@ body {
 .btn-link:hover {
   text-decoration: underline;
 }
+
+/* Shopee Partner Integration Card */
+.shopee-card {
+  border: 1px solid rgba(238, 77, 45, 0.35);
+  box-shadow: 0 4px 20px rgba(238, 77, 45, 0.08);
+}
+
+.header-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shopee-badge-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #ee4d2d, #ff6b3d);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(238, 77, 45, 0.4);
+}
+
+.badge-offline {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.badge-online {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.shopee-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shopee-token-input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.token-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #0f172a;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  transition: border-color 0.2s;
+}
+
+.token-input-wrapper:focus-within {
+  border-color: #ee4d2d;
+  box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.2);
+}
+
+.token-input-wrapper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  padding: 8px 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.input-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.shopee-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-shopee {
+  background: linear-gradient(135deg, #ee4d2d, #ff5722);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(238, 77, 45, 0.35);
+  transition: all 0.2s;
+}
+
+.btn-shopee:hover {
+  background: linear-gradient(135deg, #d73211, #ea4a18);
+  transform: translateY(-1px);
+}
+
+.btn-shopee:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-danger-outline {
+  background: transparent;
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger-outline:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+}
+
+/* Auto-poll Toggle Box */
+.auto-poll-box {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.toggle-container input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 42px;
+  height: 22px;
+  background-color: #334155;
+  border-radius: 20px;
+  position: relative;
+  transition: 0.3s;
+  flex-shrink: 0;
+}
+
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  left: 3px;
+  top: 3px;
+  background-color: #fff;
+  transition: 0.3s;
+}
+
+.toggle-container input:checked + .toggle-slider {
+  background-color: #ee4d2d;
+}
+
+.toggle-container input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.toggle-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggle-label strong {
+  font-size: 13px;
+  color: #f8fafc;
+}
+
+.toggle-label small {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.poll-live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 4px 10px;
+  border-radius: 14px;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: pulse-glow 1.5s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+/* Accordion Tutorial */
+.shopee-tutorial {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.shopee-tutorial summary {
+  cursor: pointer;
+  color: #cbd5e1;
+  outline: none;
+  user-select: none;
+}
+
+.shopee-tutorial summary:hover {
+  color: #ee4d2d;
+}
+
+.tutorial-content {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.tutorial-content ol {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.tutorial-content code {
+  background: #0f172a;
+  color: #fb923c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.shopee-link {
+  color: #ee4d2d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.shopee-link:hover {
+  text-decoration: underline;
+}

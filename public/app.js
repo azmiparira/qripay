@@ -336,6 +336,205 @@ qrisFileInput.addEventListener('change', (e) => {
   }
 });
 
+// ==============================================================================
+// 12. SHOPEE PARTNER API GATEWAY CONTROLLER
+// ==============================================================================
+
+const shopeeTokenInput = document.getElementById('shopeeTokenInput');
+const btnToggleTokenVisibility = document.getElementById('btnToggleTokenVisibility');
+const btnConnectShopee = document.getElementById('btnConnectShopee');
+const connectBtnText = document.getElementById('connectBtnText');
+const btnDisconnectShopee = document.getElementById('btnDisconnectShopee');
+const btnCheckMutasi = document.getElementById('btnCheckMutasi');
+const shopeeStatusBadge = document.getElementById('shopeeStatusBadge');
+const tokenHintText = document.getElementById('tokenHintText');
+const autoPollBox = document.getElementById('autoPollBox');
+const cbAutoPoll = document.getElementById('cbAutoPoll');
+const pollStatusText = document.getElementById('pollStatusText');
+
+let isShopeeConnected = false;
+let shopeePollTimer = null;
+
+// Toggle Visibility
+if (btnToggleTokenVisibility) {
+  btnToggleTokenVisibility.addEventListener('click', () => {
+    if (shopeeTokenInput.type === 'password') {
+      shopeeTokenInput.type = 'text';
+      btnToggleTokenVisibility.textContent = '🔒';
+    } else {
+      shopeeTokenInput.type = 'password';
+      btnToggleTokenVisibility.textContent = '👁️';
+    }
+  });
+}
+
+// Connect Shopee Account
+async function connectShopee(token, isAuto = false) {
+  if (!token || !token.trim()) {
+    if (!isAuto) alert('Silakan masukkan SHOPEE_TOKEN terlebih dahulu!');
+    return;
+  }
+
+  const cleanToken = token.trim();
+  btnConnectShopee.disabled = true;
+  connectBtnText.textContent = 'Memverifikasi ke Shopee...';
+  tokenHintText.textContent = 'Menghubungkan ke server ShopeePay Partner...';
+  tokenHintText.style.color = '#38bdf8';
+
+  try {
+    const res = await fetch('/api/shopee/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: cleanToken })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      isShopeeConnected = true;
+      localStorage.setItem('qripay_shopee_token', cleanToken);
+
+      shopeeStatusBadge.className = 'badge-pill badge-online';
+      shopeeStatusBadge.textContent = '🟢 Terhubung & Aktif';
+      connectBtnText.textContent = 'Perbarui Token';
+      tokenHintText.textContent = `✅ Terhubung! Akun Shopee Partner Anda aktif. Soundbox siap membunyikan notifikasi saat pembeli bayar ke QRIS!`;
+      tokenHintText.style.color = '#34d399';
+
+      btnDisconnectShopee.style.display = 'inline-block';
+      btnCheckMutasi.style.display = 'inline-block';
+      autoPollBox.style.display = 'flex';
+
+      // Auto unlock audio
+      if (!audioUnlocked) unlockAudio();
+
+      startShopeePolling();
+    } else {
+      throw new Error(data.message || 'Token ditolak oleh server Shopee');
+    }
+  } catch (err) {
+    isShopeeConnected = false;
+    shopeeStatusBadge.className = 'badge-pill badge-warning';
+    shopeeStatusBadge.textContent = 'Gagal Terhubung ⚠️';
+    tokenHintText.textContent = `❌ ${err.message}. Pastikan token diawali "B:" dan belum kadaluarsa.`;
+    tokenHintText.style.color = '#f87171';
+    connectBtnText.textContent = 'Sambungkan Akun Shopee';
+  } finally {
+    btnConnectShopee.disabled = false;
+  }
+}
+
+// Disconnect Shopee Account
+async function disconnectShopee() {
+  if (!confirm('Apakah Anda yakin ingin memutuskan koneksi akun Shopee Partner?')) return;
+  try {
+    await fetch('/api/shopee/disconnect', { method: 'POST' });
+  } catch (e) {}
+
+  localStorage.removeItem('qripay_shopee_token');
+  isShopeeConnected = false;
+  shopeeTokenInput.value = '';
+  shopeeStatusBadge.className = 'badge-pill badge-offline';
+  shopeeStatusBadge.textContent = 'Belum Terhubung';
+  connectBtnText.textContent = 'Sambungkan Akun Shopee';
+  tokenHintText.textContent = 'Akun Shopee Partner telah diputuskan.';
+  tokenHintText.style.color = 'var(--text-muted)';
+  btnDisconnectShopee.style.display = 'none';
+  btnCheckMutasi.style.display = 'none';
+  autoPollBox.style.display = 'none';
+  if (shopeePollTimer) clearTimeout(shopeePollTimer);
+}
+
+// Auto-Poller Loop: Checks for incoming Shopee transactions
+async function pollShopeeLoop() {
+  if (!isShopeeConnected || (cbAutoPoll && !cbAutoPoll.checked)) {
+    shopeePollTimer = setTimeout(pollShopeeLoop, 4000);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/shopee/poll-transactions');
+    const data = await res.json();
+
+    if (data.connected && data.success) {
+      if (pollStatusText) {
+        pollStatusText.textContent = `Aktif (Cek: ${new Date().toLocaleTimeString('id-ID')})`;
+      }
+      
+      if (data.hasNew && Array.isArray(data.newPayments)) {
+        data.newPayments.forEach(payment => {
+          handlePaymentEvent(payment);
+        });
+      }
+    } else if (data.tokenValid === false) {
+      if (pollStatusText) pollStatusText.textContent = 'Token Kadaluarsa! ⚠️';
+      shopeeStatusBadge.className = 'badge-pill badge-warning';
+      shopeeStatusBadge.textContent = 'Sesi Kadaluarsa ⚠️';
+      tokenHintText.textContent = 'Sesi login Shopee Anda telah berakhir di server Shopee. Silakan refresh web Shopee Partner dan salin token baru.';
+      tokenHintText.style.color = '#f87171';
+    }
+  } catch (err) {
+    if (pollStatusText) pollStatusText.textContent = 'Koneksi lambat, mencoba lagi...';
+  } finally {
+    shopeePollTimer = setTimeout(pollShopeeLoop, 4000);
+  }
+}
+
+function startShopeePolling() {
+  if (shopeePollTimer) clearTimeout(shopeePollTimer);
+  pollShopeeLoop();
+}
+
+// Check Mutasi Manual Button
+async function checkShopeeMutasi() {
+  btnCheckMutasi.disabled = true;
+  btnCheckMutasi.textContent = 'Mengambil Data...';
+  try {
+    const res = await fetch('/transactions');
+    const data = await res.json();
+    if (data.success && data.data?.transactions) {
+      const list = data.data.transactions;
+      alert(`✅ Berhasil mengambil ${list.length} mutasi terbaru dari Shopee Partner!\nTotal: Rp ${parseInt(data.total_amount, 10).toLocaleString('id-ID')}`);
+      list.slice(0, 5).forEach(tx => {
+        addTransactionToFeed({
+          amount: tx.amount,
+          payer: tx.issuer || 'ShopeePay',
+          source: 'Mutasi Shopee (Manual)',
+          timestamp: new Date().toISOString()
+        });
+      });
+    } else {
+      alert(`Gagal mengambil mutasi: ${data.error || 'Terjadi kesalahan'}`);
+    }
+  } catch (e) {
+    alert(`Error: ${e.message}`);
+  } finally {
+    btnCheckMutasi.disabled = false;
+    btnCheckMutasi.textContent = 'Tarik Mutasi Sekarang 🔄';
+  }
+}
+
+// Bind Button Events
+if (btnConnectShopee) {
+  btnConnectShopee.addEventListener('click', () => {
+    connectShopee(shopeeTokenInput.value);
+  });
+}
+
+if (btnDisconnectShopee) {
+  btnDisconnectShopee.addEventListener('click', disconnectShopee);
+}
+
+if (btnCheckMutasi) {
+  btnCheckMutasi.addEventListener('click', checkShopeeMutasi);
+}
+
+// On Startup: Auto restore saved token
+const savedShopeeToken = localStorage.getItem('qripay_shopee_token');
+if (savedShopeeToken) {
+  shopeeTokenInput.value = savedShopeeToken;
+  connectShopee(savedShopeeToken, true);
+}
+
 // Load Voices on Startup
 if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = () => {

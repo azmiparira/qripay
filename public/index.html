@@ -119,6 +119,77 @@
       <!-- Right Column: Real-Time Feed & Shopee Connection Guide -->
       <section class="info-column">
         
+        <!-- Shopee Partner API Gateway Integration Card -->
+        <div class="card shopee-card">
+          <div class="card-header">
+            <div class="header-with-badge">
+              <div class="shopee-badge-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+              </div>
+              <div>
+                <h3>Shopee Partner API Gateway</h3>
+                <p class="card-desc">Integrasi langsung akun merchant Shopee Partner (Otomatis Bunyi)</p>
+              </div>
+            </div>
+            <span id="shopeeStatusBadge" class="badge-pill badge-offline">Belum Terhubung</span>
+          </div>
+
+          <div class="shopee-body">
+            <div class="shopee-token-input-group">
+              <label for="shopeeTokenInput">SHOPEE_TOKEN Internal Akun Anda:</label>
+              <div class="token-input-wrapper">
+                <input type="password" id="shopeeTokenInput" placeholder="Tempel token B:xxxx... di sini" autocomplete="off" spellcheck="false">
+                <button type="button" id="btnToggleTokenVisibility" class="btn-icon" title="Lihat Token">👁️</button>
+              </div>
+              <p class="input-hint" id="tokenHintText">Token disimpan aman di browser Anda dan hanya digunakan untuk memeriksa mutasi pembayaran masuk.</p>
+            </div>
+
+            <div class="shopee-actions">
+              <button id="btnConnectShopee" class="btn-shopee">
+                <span id="connectBtnText">Sambungkan Akun Shopee</span>
+              </button>
+              <button id="btnDisconnectShopee" class="btn-danger-outline" style="display:none;">Putuskan</button>
+              <button id="btnCheckMutasi" class="btn-outline-sm" style="display:none;">Tarik Mutasi Sekarang 🔄</button>
+            </div>
+
+            <!-- Auto-Polling Checkbox -->
+            <div class="auto-poll-box" id="autoPollBox" style="display:none;">
+              <label class="toggle-container">
+                <input type="checkbox" id="cbAutoPoll" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">
+                  <strong>Auto-Soundbox Aktif (Real-Time Poller)</strong>
+                  <small>Mengecek mutasi Shopee setiap 4 detik & otomatis bersuara saat ada uang masuk</small>
+                </span>
+              </label>
+              <div class="poll-live-indicator" id="pollLiveIndicator">
+                <span class="pulse-dot"></span>
+                <span id="pollStatusText">Memantau transaksi...</span>
+              </div>
+            </div>
+
+            <!-- Shopee Tutorial Accordion -->
+            <details class="shopee-tutorial">
+              <summary>📖 <strong>Tutorial: Cara Mengambil SHOPEE_TOKEN (1 Menit)</strong></summary>
+              <div class="tutorial-content">
+                <ol>
+                  <li>Buka website <a href="https://partner.shopee.co.id" target="_blank" class="shopee-link">partner.shopee.co.id ↗</a> di browser laptop/komputer dan login.</li>
+                  <li>Tekan tombol <code>F12</code> pada keyboard (atau klik kanan &gt; <em>Inspeksi</em>), lalu pilih tab <strong>Network</strong>.</li>
+                  <li>Pada kolom pencarian filter Network, ketik: <code>get-transaction-list</code></li>
+                  <li>Buka menu <strong>Riwayat Transaksi</strong> di portal Shopee (atau refresh halaman).</li>
+                  <li>Klik nama request <code>get-transaction-list</code> &gt; pilih tab <strong>Payload</strong>.</li>
+                  <li>Buka bagian <code>data</code> &gt; <code>metadata</code> &gt; salin seluruh nilai <code>token</code> (panjang, diawali huruf <code>B:</code>).</li>
+                  <li>Tempelkan ke kolom input di atas lalu klik <strong>Sambungkan Akun Shopee</strong>!</li>
+                </ol>
+              </div>
+            </details>
+          </div>
+        </div>
+
         <!-- Live Transaction Feed -->
         <div class="card feed-card">
           <div class="card-header">
@@ -141,8 +212,8 @@
         <div class="card guide-card">
           <div class="card-header">
             <div>
-              <h3>Cara Menghubungkan ke Shopee Partner / DANA</h3>
-              <p class="card-desc">Agar saat ada pembeli bayar ke QRIS asli, web ini langsung bunyi</p>
+              <h3>Alternatif: Hubungkan via Notifikasi HP (MacroDroid)</h3>
+              <p class="card-desc">Metode cadangan jika tidak ingin memakai token web</p>
             </div>
           </div>
 
