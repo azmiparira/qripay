@@ -3,242 +3,191 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QRIS Virtual Soundbox - Cashi.id</title>
+  <title>QRIPAY - Prototipe QRIS Soundbox Statis</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-container">
     <!-- Header -->
-    <header class="app-header">
-      <div class="logo-area">
-        <div class="soundbox-icon-badge">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
           </svg>
         </div>
         <div>
-          <div class="header-title-row">
-            <h1>QRIS Soundbox Web</h1>
-            <span class="merchant-tag">Cashi.id</span>
-          </div>
-          <p class="subtitle">Virtual Audio Notifier • Kasir QRIS Dinamis</p>
+          <h1 class="brand-title">QRIPAY <span>SOUNDBOX</span></h1>
+          <p class="brand-subtitle">Prototipe Notifikasi Suara QRIS Statis Merchant</p>
         </div>
       </div>
       <div class="header-status">
-        <div class="api-status-pill" id="apiStatusPill">
-          <span class="status-indicator"></span>
-          <span id="apiStatusText">Cashi.id API Ready</span>
-        </div>
-        <span id="connectionBadge" class="status-pill status-disconnected">
-          <span class="dot"></span>
-          <span id="connectionText">Menghubungkan...</span>
-        </span>
+        <span class="status-indicator"></span>
+        <span id="serverStatusText">Sistem Standby (Realtime)</span>
       </div>
     </header>
 
-    <!-- Main Grid -->
+    <!-- Main Content -->
     <main class="main-grid">
-      <!-- Left Column: Kasir QRIS & Soundbox Speaker -->
-      <section class="speaker-card">
-        <!-- Kasir QRIS Dinamis Generator -->
-        <div class="pos-qris-box">
-          <div class="pos-header">
-            <div>
-              <h3>Kasir QRIS Dinamis</h3>
-              <p class="section-desc">Ketik nominal belanja pelanggan, QRIS otomatis terbit:</p>
-            </div>
-            <span class="badge-live">Cashi.id</span>
-          </div>
-
-          <div class="quick-amounts">
-            <button class="btn-chip pos-chip" data-amount="5000">Rp 5.000</button>
-            <button class="btn-chip pos-chip" data-amount="10000">Rp 10.000</button>
-            <button class="btn-chip pos-chip" data-amount="15000">Rp 15.000</button>
-            <button class="btn-chip pos-chip" data-amount="25000">Rp 25.000</button>
-            <button class="btn-chip pos-chip" data-amount="50000">Rp 50.000</button>
-            <button class="btn-chip pos-chip" data-amount="100000">Rp 100.000</button>
-          </div>
-
-          <div class="custom-sim-row">
-            <div class="input-prefix-wrapper">
-              <span class="prefix">Rp</span>
-              <input type="number" id="posAmount" placeholder="Nominal (min. 2.000)" value="15000" min="2000">
-            </div>
-            <button id="btnGenerateQRIS" class="btn-primary-sm">
-              Buat QRIS 📱
-            </button>
-          </div>
-
-          <!-- Dynamic QRIS Display Area -->
-          <div id="qrisModal" class="qris-display-area" style="display: none;">
-            <div class="qris-card">
-              <div class="qris-header-badge">SCAN QRIS UNTUK MEMBAYAR</div>
-              <p class="qris-target-amount" id="qrisTotalAmount">Rp 15.000</p>
-              <div class="qris-image-wrapper">
-                <img id="qrisImage" src="" alt="QRIS Dinamis Cashi.id" class="qris-img">
-              </div>
-              <p class="qris-note">Mendukung BCA, ShopeePay, GoPay, OVO, DANA, Livin, dll</p>
-              <div class="qris-actions-row">
-                <a id="qrisCheckoutLink" href="#" target="_blank" class="btn-link-sm">Buka Halaman Bayar ↗</a>
-                <button id="btnCloseQRIS" class="btn-ghost-sm">Tutup QR</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Soundbox Virtual Device Representation -->
-        <div class="soundbox-device">
-          <div class="speaker-grill" id="speakerGrill">
-            <div class="wave wave-1"></div>
-            <div class="wave wave-2"></div>
-            <div class="wave wave-3"></div>
-            <div class="speaker-center">
-              <svg id="speakerIcon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-              </svg>
-            </div>
-          </div>
-          
-          <div class="soundbox-screen">
-            <span class="screen-label">NOTIFIKASI PEMBAYARAN</span>
-            <div class="screen-amount" id="displayAmount">Rp 0</div>
-            <div class="screen-info" id="displayInfo">Standby • Menunggu QRIS dibayar...</div>
-          </div>
-        </div>
-
-        <!-- Master Sound Activation Button -->
-        <div class="audio-control-box">
-          <button id="btnToggleAudio" class="btn-activate-audio">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <!-- Left Column: Virtual Soundbox & QRIS Display -->
+      <section class="soundbox-column">
+        
+        <!-- Audio Activation Banner (Required for Browser Autoplay Policy) -->
+        <div class="audio-banner" id="audioBanner">
+          <button id="btnUnlockAudio" class="btn-unlock-audio">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
             </svg>
-            <span id="audioStatusText">Klik 1x untuk Mengaktifkan Suara</span>
+            <span id="audioBtnText">KLIK 1X UNTUK MENGAKTIFKAN SUARA SOUNDBOX</span>
           </button>
-          <p class="hint-text">
-            ⚠️ Klik tombol di atas 1 kali saat membuka toko kasir agar browser mengizinkan suara bersuara otomatis.
-          </p>
+          <p class="audio-hint">⚠️ Browser wajib diizinkan bersuara 1 kali agar notifikasi dapat berbunyi otomatis saat ada pembayaran masuk.</p>
         </div>
 
-        <!-- Test Simulator -->
-        <div class="simulator-box">
-          <h3>Simulasi Suara (Uji Coba)</h3>
-          <p class="section-desc">Coba dengarkan suara pengumuman pembayaran:</p>
+        <!-- Virtual Soundbox Hardware Device -->
+        <div class="virtual-soundbox">
+          <div class="device-body">
+            <!-- Speaker Grill Animation -->
+            <div class="speaker-grill" id="speakerGrill">
+              <div class="pulse-ring ring-1"></div>
+              <div class="pulse-ring ring-2"></div>
+              <div class="pulse-ring ring-3"></div>
+              <div class="speaker-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Digital LED Screen -->
+            <div class="led-screen">
+              <span class="led-label">STATUS PEMBAYARAN KASIR</span>
+              <div class="led-amount" id="displayAmount">STANDBY</div>
+              <div class="led-info" id="displayInfo">Menunggu pembayaran QRIS dari pembeli...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Static QRIS Display Card -->
+        <div class="card qris-card">
+          <div class="card-header">
+            <h3>QRIS Statis Toko Anda</h3>
+            <span class="badge-pill">Statis (Bebas Nominal)</span>
+          </div>
+          <div class="qris-content">
+            <div class="qris-image-wrapper">
+              <img id="qrisImage" src="/qris.png" alt="QRIS Statis" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=00020101021126570011ID.DANA.WWW011893600915351010223202095101022320303UMI51440014ID.CO.QRIS.WWW0215ID10232917905590303UMI5204481453033605802ID5909Azmi+Shop6013Kab.+Sukabumi6105433536304CA17'">
+            </div>
+            <p class="qris-instruction">Silakan scan kode QR di atas menggunakan aplikasi perbankan apa saja (BCA, Mandiri, BRI, DANA, GoPay, ShopeePay, OVO).</p>
+            <div class="qris-custom-upload">
+              <label for="qrisFileInput" class="btn-outline-sm">Ganti Gambar QRIS Lain 📷</label>
+              <input type="file" id="qrisFileInput" accept="image/*" style="display:none;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Test Simulator -->
+        <div class="card simulator-card">
+          <div class="card-header">
+            <h3>Simulasi Suara Instan (Uji Coba Cepat)</h3>
+          </div>
+          <p class="sim-desc">Klik nominal di bawah untuk menguji apakah suara soundbox di HP/laptop Anda berbunyi:</p>
+          <div class="chip-grid">
+            <button class="chip-btn" data-amount="5000">Rp 5.000</button>
+            <button class="chip-btn" data-amount="10000">Rp 10.000</button>
+            <button class="chip-btn" data-amount="25000">Rp 25.000</button>
+            <button class="chip-btn" data-amount="50000">Rp 50.000</button>
+          </div>
           <div class="custom-sim-row">
-            <div class="input-prefix-wrapper">
-              <span class="prefix">Rp</span>
-              <input type="number" id="customSimAmount" placeholder="Nominal tes" value="25000">
+            <div class="input-group">
+              <span class="currency-prefix">Rp</span>
+              <input type="number" id="customAmount" placeholder="Nominal lain" value="15000">
             </div>
-            <button id="btnRunSim" class="btn-secondary">
-              Tes Bunyi 🔔
-            </button>
+            <button id="btnSimulate" class="btn-primary">Tes Bunyi 🔔</button>
           </div>
         </div>
 
-        <!-- Voice Customization Settings -->
-        <div class="settings-box">
-          <div class="settings-header">
-            <h3>Pengaturan Suara</h3>
-          </div>
-          
-          <div class="setting-item">
-            <label for="templateSelect">Template Ucapan:</label>
-            <select id="templateSelect" class="form-select">
-              <option value="standard" selected>"{nominal} rupiah, pembayaran QRIS berhasil diterima"</option>
-              <option value="simple">"{nominal} rupiah, uang masuk"</option>
-              <option value="kasir">"{nominal} rupiah, pembayaran QRIS sukses. Terima kasih"</option>
-              <option value="short">"{nominal} rupiah berhasil diterima"</option>
-            </select>
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-item flex-1">
-              <label for="speechRate">Kecepatan Suara: <span id="rateVal">1.0x</span></label>
-              <input type="range" id="speechRate" min="0.7" max="1.4" step="0.1" value="1.0">
-            </div>
-            <div class="setting-item flex-1">
-              <label for="chimeToggle">Suara Bel Kasir (Chime):</label>
-              <label class="switch">
-                <input type="checkbox" id="chimeToggle" checked>
-                <span class="slider round"></span>
-              </label>
-            </div>
-          </div>
-        </div>
       </section>
 
-      <!-- Right Column: Live Feed & Webhook Configuration -->
-      <section class="feed-column">
+      <!-- Right Column: Real-Time Feed & Shopee Connection Guide -->
+      <section class="info-column">
+        
         <!-- Live Transaction Feed -->
         <div class="card feed-card">
           <div class="card-header">
             <div>
-              <h2>Riwayat Pembayaran Real-Time</h2>
-              <p class="card-subtitle">Transaksi yang otomatis tertangkap dari Cashi.id QRIS</p>
+              <h3>Riwayat Transaksi Masuk (Real-Time)</h3>
+              <p class="card-desc">Pembayaran yang tertangkap otomatis dari webhook/notifikasi</p>
             </div>
-            <button id="btnClearFeed" class="btn-ghost" title="Bersihkan Tampilan">Bersihkan</button>
+            <button id="btnClearHistory" class="btn-ghost-sm">Bersihkan</button>
           </div>
-
-          <div class="transaction-list" id="transactionList">
+          <div class="feed-list" id="transactionList">
             <div class="empty-state" id="emptyState">
               <div class="empty-icon">💸</div>
-              <p>Belum ada pembayaran masuk</p>
-              <span>Buat QRIS kasir di sebelah kiri atau lakukan pembayaran</span>
+              <p>Belum ada transaksi pembayaran masuk</p>
+              <span>Scan QRIS statis di sebelah kiri atau klik tombol simulasi</span>
             </div>
           </div>
         </div>
 
-        <!-- Cashi.id Webhook Setup Guide -->
+        <!-- Tutorial & Setup Guide for Shopee / HP Notification -->
         <div class="card guide-card">
           <div class="card-header">
             <div>
-              <h2>Konfigurasi Webhook Cashi.id</h2>
-              <p class="card-subtitle">Verifikasi resmi HMAC-SHA256 (x-gateway-signature)</p>
+              <h3>Cara Menghubungkan ke Shopee Partner / DANA</h3>
+              <p class="card-desc">Agar saat ada pembeli bayar ke QRIS asli, web ini langsung bunyi</p>
             </div>
           </div>
-          <div class="guide-content">
-            <div class="credentials-badge-row">
-              <div class="cred-chip">
-                <span>API Key:</span> <code>28567018921e...</code>
-              </div>
-              <div class="cred-chip">
-                <span>Secret:</span> <code>sk_725cec26...</code>
+
+          <div class="guide-box">
+            <p class="guide-intro">
+              Karena QRIS Anda adalah <strong>QRIS Statis Shopee Merchant</strong>, ketika pembeli membayar, Shopee akan mengirim notifikasi ke HP Anda. Kita gunakan aplikasi penerus notifikasi gratis (MacroDroid) agar notifikasi tersebut otomatis diteruskan ke Web ini dalam <strong>0,5 detik</strong>!
+            </p>
+
+            <div class="endpoint-box">
+              <span class="endpoint-label">URL Webhook Penerima Soundbox Anda:</span>
+              <div class="code-copy-row">
+                <code id="webhookUrlText">https://qripay.vercel.app/api/webhook</code>
+                <button id="btnCopyWebhook" class="btn-copy">Salin URL</button>
               </div>
             </div>
 
-            <ol class="guide-steps">
+            <h4 class="steps-title">Langkah Setup 2 Menit di HP Anda:</h4>
+            <ol class="step-list">
               <li>
-                <strong>Buka Dashboard Cashi.id:</strong><br>
-                Masuk ke menu <strong>Settings</strong> &gt; <strong>Webhooks</strong>.
+                <strong>Install MacroDroid</strong> dari Google Play Store (Gratis) pada HP yang ada aplikasi <em>Shopee Partner</em>.
               </li>
               <li>
-                <strong>Masukkan Webhook URL:</strong><br>
-                Arahkan Webhook URL ke endpoint:
-                <div class="code-box">
-                  <code id="webhookUrlDisplay">https://qripay.vercel.app/webhook</code>
-                  <button id="btnCopyWebhook" class="btn-copy">Salin</button>
-                </div>
+                <strong>Buat Macro Baru:</strong>
+                <ul>
+                  <li><strong>Trigger:</strong> Pilih <em>Device Events</em> &gt; <em>Notification Received</em> &gt; Pilih aplikasi <strong>Shopee Partner</strong> (atau DANA).</li>
+                  <li><strong>Action:</strong> Pilih <em>Connectivity</em> &gt; <em>HTTP Request</em>:
+                    <br>• Method: <strong>POST</strong>
+                    <br>• URL: Masukkan URL Webhook di atas.
+                    <br>• Content Type: <code>application/json</code>
+                    <br>• Body Content: <code>{"text": "{notif_body}"}</code>
+                  </li>
+                </ul>
               </li>
               <li>
-                <strong>Pastikan Akun Cashi.id Aktif:</strong><br>
-                Pastikan akun Cashi.id Anda sudah selesai verifikasi agar API pembuatan order QRIS dapat diakses.
+                <strong>Selesai!</strong> Sekarang setiap kali ada pembeli scan QRIS statis Anda, HP menerima notifikasi Shopee &gt; diteruskan ke Web ini &gt; <strong>Web Soundbox langsung berbicara lantang: <em>"Pembayaran QRIS sebesar ... rupiah berhasil diterima!"</em></strong>
               </li>
             </ol>
             
-            <div class="raw-logs-section">
-              <div class="logs-header">
-                <span>Live Webhook Log & Signature Inspector</span>
-                <button id="btnRefreshLogs" class="btn-ghost-sm">Refresh Log</button>
-              </div>
-              <pre id="rawLogsPreview">Belum ada payload webhook masuk dari Cashi.id.</pre>
+            <div class="direct-test-box">
+              <span>Ingin tes manual dari browser tanpa HP?</span>
+              <a id="directTestLink" href="/api/webhook?amount=20000&payer=BCA" target="_blank" class="btn-link">Buka Link Tes Bayar Rp 20.000 ↗</a>
             </div>
           </div>
         </div>
+
       </section>
     </main>
   </div>

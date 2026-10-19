@@ -4,12 +4,16 @@
   "description": "Virtual QRIS Soundbox Web Application for PayKita / Payment Gateway",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "custom-qris": "node tools/qris-customizer/qris-customizer.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^18.0.8",
     "express": "^4.21.2",
-    "puppeteer-core": "^25.14.0"
+    "jimp": "^1.6.1",
+    "jsqr": "^1.4.0",
+    "puppeteer-core": "^25.14.0",
+    "qrcode": "^1.5.4"
   }
 }

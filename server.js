@@ -1,55 +1,172 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const crypto = require('crypto');
-const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Dynamic configuration getter: Always pulls latest values from Environment Variables (Vercel / .env)
-function getCashiConfig() {
-  const apiKey = (process.env.CASHI_API_KEY || '').trim() || '28567018921edd2bb00c979281d2ab663ab16b4809c87e23b4234f22d4b7fadf';
-  const webhookSecret = (process.env.CASHI_WEBHOOK_SECRET || '').trim() || 'sk_725cec268bbf895562be95d9aff42c37';
-  const baseUrl = (process.env.CASHI_BASE_URL || 'https://cashi.id').trim();
-  const merchantName = (process.env.MERCHANT_NAME || 'Jus Smoothies').trim();
-
-  return { baseUrl, apiKey, webhookSecret, merchantName };
-}
-
-app.use(cors());
-
-// Capture raw body for Cashi.id HMAC-SHA256 signature verification
-app.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf ? buf.toString('utf8') : '';
-  }
-}));
+// Middleware
+app.use(cors({ origin: '*' }));
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Store connected SSE clients
-let sseClients = [];
+// In-Memory Transaction Store (Holds last 100 events)
+const transactions = [];
+let lastEventId = Date.now();
+const sseClients = new Set();
 
-// Store transaction history & raw webhook logs (in-memory)
-const transactionHistory = [];
-const webhookLogs = [];
+/**
+ * Helper: Parse nominal dari teks notifikasi Shopee / DANA / Bank
+ * Contoh input:
+ * - "Pembayaran diterima Rp 15.000 dari BCA" -> 15000
+ * - "Kamu menerima pembayaran Rp25.500" -> 25500
+ * - "10000" -> 10000
+ */
+function extractAmountFromText(text) {
+  if (typeof text === 'number') return text;
+  if (!text) return 0;
+  
+  const str = String(text);
+  // Cari pola Rp 15.000 atau Rp15000
+  const rpMatch = str.match(/(?:rp\.?|idr)\s*([0-9\.\,]+)/i);
+  if (rpMatch && rpMatch[1]) {
+    const clean = rpMatch[1].replace(/\./g, '').replace(/,/g, '');
+    const num = parseInt(clean, 10);
+    if (!isNaN(num) && num > 0) return num;
+  }
 
-// Broadcast helper via SSE
-function broadcastEvent(data) {
-  const payload = `data: ${JSON.stringify(data)}\n\n`;
+  // Cari angka sembarang jika tidak ada prefix Rp
+  const numMatch = str.match(/([0-9]{1,3}(?:\.[0-9]{3})+|[0-9]{4,10})/);
+  if (numMatch && numMatch[1]) {
+    const clean = numMatch[1].replace(/\./g, '').replace(/,/g, '');
+    const num = parseInt(clean, 10);
+    if (!isNaN(num) && num > 0) return num;
+  }
+
+  return 0;
+}
+
+/**
+ * Broadcast event to SSE and In-Memory Buffer
+ */
+function recordAndBroadcast(txData) {
+  lastEventId = Date.now();
+  const tx = {
+    id: lastEventId,
+    amount: txData.amount || 0,
+    payer: txData.payer || 'QRIS Pembeli',
+    source: txData.source || 'Shopee Partner',
+    rawText: txData.rawText || '',
+    timestamp: new Date().toISOString()
+  };
+
+  transactions.unshift(tx);
+  if (transactions.length > 100) transactions.pop();
+
+  // Notify SSE clients
+  const ssePayload = `data: ${JSON.stringify(tx)}\n\n`;
   sseClients.forEach(client => {
     try {
-      client.res.write(payload);
-    } catch (err) {
-      console.error('Failed to send SSE to client:', err);
+      client.write(ssePayload);
+    } catch (e) {
+      sseClients.delete(client);
     }
+  });
+
+  console.log(`[${new Date().toLocaleTimeString('id-ID')}] 🔊 Soundbox Triggered: Rp ${tx.amount.toLocaleString('id-ID')} (${tx.payer})`);
+  return tx;
+}
+
+// ==========================================
+// 1. UNIVERSAL WEBHOOK ENDPOINT
+// ==========================================
+function handleIncomingPayment(req, res) {
+  const time = new Date().toLocaleTimeString('id-ID');
+  console.log(`[${time}] 📥 Incoming Webhook Received:`, req.body, req.query);
+
+  let amount = 0;
+  let payer = 'ShopeePay';
+  let rawText = '';
+
+  // 1. Ambil dari body jika format JSON terstruktur
+  if (req.body && typeof req.body === 'object') {
+    if (req.body.amount) {
+      amount = extractAmountFromText(req.body.amount);
+    }
+    if (req.body.payer) {
+      payer = req.body.payer;
+    }
+    // Jika body berisi teks mentah dari notifikasi HP (MacroDroid / Notification Listener)
+    if (req.body.text || req.body.message || req.body.title) {
+      rawText = `${req.body.title || ''} ${req.body.text || req.body.message || ''}`.trim();
+      if (!amount) {
+        amount = extractAmountFromText(rawText);
+      }
+    }
+  }
+
+  // 2. Ambil dari query string URL jika via GET / browser test
+  if (!amount && req.query.amount) {
+    amount = extractAmountFromText(req.query.amount);
+  }
+  if (req.query.payer) {
+    payer = req.query.payer;
+  }
+  if (!rawText && req.query.text) {
+    rawText = req.query.text;
+    if (!amount) amount = extractAmountFromText(rawText);
+  }
+
+  // Validasi nominal
+  if (!amount || amount <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Gagal mendeteksi nominal uang masuk. Pastikan ada parameter "amount" atau teks notifikasi "Rp ..."',
+      receivedBody: req.body,
+      receivedQuery: req.query
+    });
+  }
+
+  const tx = recordAndBroadcast({
+    amount,
+    payer,
+    source: req.body.package || req.body.source || 'Shopee Partner QRIS',
+    rawText
+  });
+
+  return res.json({
+    success: true,
+    message: 'Pembayaran berhasil diterima dan diteruskan ke Soundbox Web!',
+    transaction: tx
   });
 }
 
-// SSE endpoint for live soundbox clients
-app.get('/events', (req, res) => {
+// Support POST and GET for webhook testing
+app.post('/api/webhook', handleIncomingPayment);
+app.get('/api/webhook', handleIncomingPayment);
+app.post('/webhook', handleIncomingPayment);
+app.get('/webhook', handleIncomingPayment);
+
+// ==========================================
+// 2. CLIENT POLLING ENDPOINT (Reliable on Vercel Serverless)
+// ==========================================
+app.get('/api/poll', (req, res) => {
+  const since = parseInt(req.query.since, 10) || 0;
+  const newEvents = transactions.filter(t => t.id > since);
+
+  res.json({
+    success: true,
+    latestId: transactions.length > 0 ? transactions[0].id : since,
+    hasNew: newEvents.length > 0,
+    events: newEvents
+  });
+});
+
+// ==========================================
+// 3. SSE STREAM ENDPOINT (Realtime for VPS / Local)
+// ==========================================
+app.get('/api/sse', (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -57,312 +174,55 @@ app.get('/events', (req, res) => {
     'Access-Control-Allow-Origin': '*'
   });
 
-  const clientId = Date.now() + Math.random().toString(36).substr(2, 9);
-  const newClient = { id: clientId, res };
-  sseClients.push(newClient);
-
-  const config = getCashiConfig();
-  res.write(`data: ${JSON.stringify({ 
-    type: 'CONNECTED', 
-    message: 'Cashi.id Soundbox Live Connected',
-    merchant: config.merchantName,
-    apiKeyMasked: config.apiKey ? (config.apiKey.slice(0, 6) + '...' + config.apiKey.slice(-4)) : 'Not set'
-  })}\n\n`);
+  res.write(': connected\n\n');
+  sseClients.add(res);
 
   req.on('close', () => {
-    sseClients = sseClients.filter(c => c.id !== clientId);
+    sseClients.delete(res);
   });
 });
 
-// Cashi.id HMAC-SHA256 Signature Validator
-function verifyCashiSignature(req) {
-  const config = getCashiConfig();
-  const signature = req.headers['x-gateway-signature'] || req.headers['http_x_gateway_signature'];
-
-  if (!signature) {
-    return { verified: false, reason: 'Header x-gateway-signature tidak ditemukan' };
-  }
-
-  const payload = req.rawBody || JSON.stringify(req.body);
-  const expected = crypto
-    .createHmac('sha256', config.webhookSecret)
-    .update(payload)
-    .digest('hex');
-
-  const isValid = (signature === expected);
-  return { verified: isValid, reason: isValid ? 'OK' : 'Signature mismatch' };
-}
-
-// Webhook Handler for Cashi.id
-const handleIncomingWebhook = (req, res) => {
-  const timeNow = new Date().toLocaleTimeString('id-ID');
-  console.log(`[${timeNow}] 📥 Cashi.id Webhook incoming...`);
-
-  // Verify signature
-  const sigCheck = verifyCashiSignature(req);
-  console.log(`[${timeNow}] 🔐 Signature Status:`, sigCheck.verified ? '✅ Verified (Authentic Cashi.id)' : `⚠️ Note: ${sigCheck.reason}`);
-
-  // Save raw log for debugging in UI
-  webhookLogs.unshift({
-    timestamp: new Date().toISOString(),
-    signatureVerified: sigCheck.verified,
-    headers: req.headers,
-    body: req.body
-  });
-  if (webhookLogs.length > 50) webhookLogs.pop();
-
-  const { event, data } = req.body || {};
-
-  // Handle Cashi.id Events
-  if (event === 'PAYMENT_SETTLED' && data) {
-    // 1. Test Event
-    if (data.order_id && String(data.order_id).startsWith('TEST-')) {
-      console.log(`[${timeNow}] 🧪 Cashi.id Test Webhook received!`);
-      broadcastEvent({
-        type: 'PAYMENT_TEST',
-        amount: 10000,
-        payer: 'Tes Webhook Cashi.id',
-        trxId: data.order_id,
-        message: 'Tes koneksi Webhook Cashi.id berhasil diterima!',
-        timestamp: new Date().toISOString()
-      });
-      return res.status(200).send('Test OK');
-    }
-
-    // 2. Real Payment Settled
-    if (data.status === 'SETTLED' || data.status === 'PAID') {
-      const amount = parseInt(data.amount, 10) || 0;
-      const tx = {
-        type: 'PAYMENT',
-        amount: amount,
-        status: 'SETTLED',
-        trxId: data.order_id || 'CASHI-' + Date.now(),
-        payer: data.payment_method || data.channel || 'QRIS Cashi',
-        timestamp: new Date().toISOString()
-      };
-
-      transactionHistory.unshift(tx);
-      if (transactionHistory.length > 50) transactionHistory.pop();
-
-      // Trigger audio on connected soundboxes
-      broadcastEvent(tx);
-      console.log(`[${timeNow}] 🔊 Soundbox triggered: Rp ${amount.toLocaleString('id-ID')} (${tx.payer})`);
-      return res.status(200).send('OK');
-    }
-  }
-
-  // Fallback for generic or non-settled events
-  return res.status(200).send('Event processed');
-};
-
-app.post('/webhook', handleIncomingWebhook);
-app.post('/api/webhook', handleIncomingWebhook);
-app.post('/api/cashi-webhook', handleIncomingWebhook);
-
-// Create Dynamic QRIS Order via Cashi.id API
-app.post('/api/create-order', (req, res) => {
-  const config = getCashiConfig();
-  const amount = parseInt(req.body.amount, 10);
-  if (!amount || amount < 2000) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Minimal nominal pembayaran QRIS Cashi.id adalah Rp 2.000' 
-    });
-  }
-
-  const orderId = req.body.order_id || ('POS-' + Date.now().toString().slice(-8));
-  const channel = req.body.kode_channel || 'QRIS_CUSTOM';
-
-  const payload = JSON.stringify({
-    amount: amount,
-    order_id: orderId,
-    kode_channel: channel
-  });
-
-  const options = {
-    hostname: 'cashi.id',
-    path: '/api/create-order',
-    method: 'POST',
-    headers: {
-      'x-api-key': config.apiKey,
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(payload),
-      'User-Agent': 'Cashi-Soundbox-Server/1.0'
-    }
-  };
-
-  const apiReq = https.request(options, (apiRes) => {
-    let raw = '';
-    apiRes.on('data', chunk => raw += chunk);
-    apiRes.on('end', () => {
-      try {
-        const json = JSON.parse(raw);
-        if (json.success) {
-          res.json({
-            success: true,
-            orderId: json.orderId || orderId,
-            amount: json.amount || amount,
-            checkout_url: json.checkout_url,
-            qrUrl: json.qrUrl,
-            fee: json.fee,
-            expires_at: json.expires_at
-          });
-        } else {
-          res.status(apiRes.statusCode >= 400 ? apiRes.statusCode : 400).json({
-            success: false,
-            error: json.error || json.message || 'Gagal membuat QRIS di Cashi.id',
-            details: json
-          });
-        }
-      } catch (e) {
-        res.status(500).json({ success: false, error: 'Gagal parse response dari Cashi.id', raw });
-      }
-    });
-  });
-
-  apiReq.on('error', (err) => {
-    res.status(500).json({ success: false, error: err.message });
-  });
-
-  apiReq.write(payload);
-  apiReq.end();
-});
-
-// Real-Time Order Status Checker from Cashi.id API
-app.get('/api/check-status/:orderId', (req, res) => {
-  const config = getCashiConfig();
-  const orderId = req.params.orderId;
-
-  if (!orderId) {
-    return res.status(400).json({ success: false, message: 'orderId diperlukan' });
-  }
-
-  const options = {
-    hostname: 'cashi.id',
-    path: `/api/check-status/${encodeURIComponent(orderId)}`,
-    method: 'GET',
-    headers: {
-      'x-api-key': config.apiKey,
-      'User-Agent': 'Cashi-Soundbox-Server/1.0'
-    }
-  };
-
-  const apiReq = https.request(options, (apiRes) => {
-    let raw = '';
-    apiRes.on('data', chunk => raw += chunk);
-    apiRes.on('end', () => {
-      try {
-        const json = JSON.parse(raw);
-        res.json(json);
-      } catch (e) {
-        res.status(500).json({ success: false, error: 'Gagal parse status Cashi.id', raw });
-      }
-    });
-  });
-
-  apiReq.on('error', (err) => {
-    res.status(500).json({ success: false, error: err.message });
-  });
-
-  apiReq.end();
-});
-
-// Check Cashi.id API Status & Return Active API Key Preview
-app.get('/api/cashi/status', (req, res) => {
-  const config = getCashiConfig();
-  const apiKeyMasked = config.apiKey ? (config.apiKey.slice(0, 6) + '...' + config.apiKey.slice(-4)) : 'Not configured';
-  const hasEnvCustom = !!process.env.CASHI_API_KEY;
-
-  const options = {
-    hostname: 'cashi.id',
-    path: '/api/check-status/CHECK-CONNECT',
-    method: 'GET',
-    headers: {
-      'x-api-key': config.apiKey,
-      'User-Agent': 'Cashi-Soundbox-Server/1.0'
-    }
-  };
-
-  const apiReq = https.request(options, (apiRes) => {
-    let raw = '';
-    apiRes.on('data', chunk => raw += chunk);
-    apiRes.on('end', () => {
-      try {
-        const json = JSON.parse(raw);
-        res.json({
-          success: true,
-          status: json,
-          merchant: config.merchantName,
-          apiKeyMasked: apiKeyMasked,
-          hasEnvCustom: hasEnvCustom,
-          httpCode: apiRes.statusCode
-        });
-      } catch (e) {
-        res.json({
-          success: true,
-          status: { note: 'Cashi pinged' },
-          merchant: config.merchantName,
-          apiKeyMasked: apiKeyMasked,
-          hasEnvCustom: hasEnvCustom,
-          httpCode: apiRes.statusCode
-        });
-      }
-    });
-  });
-
-  apiReq.on('error', (err) => {
-    res.json({
-      success: false,
-      error: err.message,
-      merchant: config.merchantName,
-      apiKeyMasked: apiKeyMasked,
-      hasEnvCustom: hasEnvCustom
-    });
-  });
-
-  apiReq.end();
-});
-
-// Simulation Endpoint (For instant testing from frontend)
+// ==========================================
+// 4. INSTANT SIMULATE / TEST BUTTON
+// ==========================================
 app.post('/api/simulate', (req, res) => {
   const amount = parseInt(req.body.amount, 10) || 15000;
-  const payer = req.body.payer || 'Pembeli QRIS (Cashi.id)';
-  
-  const tx = {
-    type: 'PAYMENT',
-    amount: amount,
-    status: 'SETTLED',
-    trxId: 'SIM-' + Math.floor(100000 + Math.random() * 900000),
-    payer: payer,
-    timestamp: new Date().toISOString()
-  };
+  const payer = req.body.payer || 'Pembeli QRIS (Tes Mandiri)';
 
-  transactionHistory.unshift(tx);
-  if (transactionHistory.length > 50) transactionHistory.pop();
+  const tx = recordAndBroadcast({
+    amount,
+    payer,
+    source: 'Simulasi Web',
+    rawText: `Tes Simulasi Pembayaran Rp ${amount.toLocaleString('id-ID')}`
+  });
 
-  broadcastEvent(tx);
   res.json({ success: true, transaction: tx });
 });
 
-// History & Logs API
+// ==========================================
+// 5. HISTORY & STATUS ENDPOINT
+// ==========================================
 app.get('/api/history', (req, res) => {
-  res.json({ success: true, history: transactionHistory });
+  res.json({ success: true, transactions });
 });
 
-app.get('/api/logs', (req, res) => {
-  res.json({ success: true, logs: webhookLogs });
+app.get('/api/status', (req, res) => {
+  res.json({
+    success: true,
+    status: 'online',
+    uptimeSeconds: Math.floor(process.uptime()),
+    serverTime: new Date().toISOString(),
+    totalRecordedTransactions: transactions.length
+  });
 });
 
+// Start Server locally
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  const cfg = getCashiConfig();
   app.listen(PORT, () => {
-    console.log(`=======================================================`);
-    console.log(`🚀 Cashi.id QRIS Soundbox running on http://localhost:${PORT}`);
-    console.log(`🏪 Merchant: ${cfg.merchantName}`);
-    console.log(`🔑 Cashi API Key: ${cfg.apiKey.substr(0, 15)}...`);
-    console.log(`🛡️ Webhook Secret: Configured (HMAC-SHA256 Enabled)`);
-    console.log(`📡 Webhook Endpoint: http://localhost:${PORT}/webhook`);
-    console.log(`=======================================================`);
+    console.log(`====================================================`);
+    console.log(`🔊 QRIPAY Soundbox Server running on http://localhost:${PORT}`);
+    console.log(`📡 Webhook URL: http://localhost:${PORT}/api/webhook`);
+    console.log(`====================================================`);
   });
 }
 
