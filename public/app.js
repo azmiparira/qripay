@@ -759,3 +759,313 @@ if ('speechSynthesis' in window) {
     window.speechSynthesis.getVoices();
   };
 }
+
+// ==============================================================================
+// 10. DANA BISNIS GATEWAY CONTROLLER (yono99/dana-api-gateway integration)
+// ==============================================================================
+
+const tabGatewayDana = document.getElementById('tabGatewayDana');
+const tabGatewayShopee = document.getElementById('tabGatewayShopee');
+const danaGatewayCard = document.getElementById('danaGatewayCard');
+const shopeeGatewayCard = document.getElementById('shopeeGatewayCard');
+
+const btnDanaTabToken = document.getElementById('btnDanaTabToken');
+const btnDanaTabOtp = document.getElementById('btnDanaTabOtp');
+const danaTokenView = document.getElementById('danaTokenView');
+const danaOtpView = document.getElementById('danaOtpView');
+
+const danaTokenInput = document.getElementById('danaTokenInput');
+const danaMerchantIdInput = document.getElementById('danaMerchantIdInput');
+const btnToggleDanaToken = document.getElementById('btnToggleDanaToken');
+const btnConnectDana = document.getElementById('btnConnectDana');
+const connectDanaBtnText = document.getElementById('connectDanaBtnText');
+const btnDisconnectDana = document.getElementById('btnDisconnectDana');
+const btnCheckDanaMutasi = document.getElementById('btnCheckDanaMutasi');
+const danaStatusBadge = document.getElementById('danaStatusBadge');
+const cbDanaAutoPoll = document.getElementById('cbDanaAutoPoll');
+const danaAutoPollBox = document.getElementById('danaAutoPollBox');
+const danaPollStatusText = document.getElementById('danaPollStatusText');
+
+const danaPhoneInput = document.getElementById('danaPhoneInput');
+const btnSendDanaOtp = document.getElementById('btnSendDanaOtp');
+const danaOtpStep2 = document.getElementById('danaOtpStep2');
+const danaOtpInput = document.getElementById('danaOtpInput');
+const btnVerifyDanaOtp = document.getElementById('btnVerifyDanaOtp');
+
+let isDanaConnected = false;
+let danaPollTimer = null;
+let currentOtpToken = null;
+let currentDeviceId = null;
+
+// Gateway Switcher
+if (tabGatewayDana && tabGatewayShopee) {
+  tabGatewayDana.addEventListener('click', () => {
+    tabGatewayDana.classList.add('active');
+    tabGatewayShopee.classList.remove('active');
+    if (danaGatewayCard) danaGatewayCard.style.display = 'block';
+    if (shopeeGatewayCard) shopeeGatewayCard.style.display = 'none';
+  });
+
+  tabGatewayShopee.addEventListener('click', () => {
+    tabGatewayShopee.classList.add('active');
+    tabGatewayDana.classList.remove('active');
+    if (shopeeGatewayCard) shopeeGatewayCard.style.display = 'block';
+    if (danaGatewayCard) danaGatewayCard.style.display = 'none';
+  });
+}
+
+// DANA Tabs: Token vs OTP
+if (btnDanaTabToken && btnDanaTabOtp) {
+  btnDanaTabToken.addEventListener('click', () => {
+    btnDanaTabToken.classList.add('active');
+    btnDanaTabOtp.classList.remove('active');
+    if (danaTokenView) danaTokenView.style.display = 'block';
+    if (danaOtpView) danaOtpView.style.display = 'none';
+  });
+
+  btnDanaTabOtp.addEventListener('click', () => {
+    btnDanaTabOtp.classList.add('active');
+    btnDanaTabToken.classList.remove('active');
+    if (danaOtpView) danaOtpView.style.display = 'block';
+    if (danaTokenView) danaTokenView.style.display = 'none';
+  });
+}
+
+if (btnToggleDanaToken && danaTokenInput) {
+  btnToggleDanaToken.addEventListener('click', () => {
+    if (danaTokenInput.type === 'password') {
+      danaTokenInput.type = 'text';
+      btnToggleDanaToken.textContent = '🔒';
+    } else {
+      danaTokenInput.type = 'password';
+      btnToggleDanaToken.textContent = '👁️';
+    }
+  });
+}
+
+async function checkDanaStatus() {
+  try {
+    const res = await fetch('/api/dana/status');
+    const data = await res.json();
+    if (data.success && data.connected) {
+      setDanaConnectedState(true, data.merchantName || 'DANA Merchant');
+    } else {
+      setDanaConnectedState(false);
+    }
+  } catch (e) {
+    setDanaConnectedState(false);
+  }
+}
+
+function setDanaConnectedState(connected, merchantName = '') {
+  isDanaConnected = connected;
+  if (connected) {
+    if (danaStatusBadge) {
+      danaStatusBadge.className = 'badge-pill badge-live';
+      danaStatusBadge.textContent = `🟢 Terhubung (${merchantName})`;
+    }
+    if (btnConnectDana) btnConnectDana.style.display = 'none';
+    if (btnDisconnectDana) btnDisconnectDana.style.display = 'inline-block';
+    if (btnCheckDanaMutasi) btnCheckDanaMutasi.style.display = 'inline-block';
+    if (danaAutoPollBox) danaAutoPollBox.style.display = 'block';
+    startDanaPolling();
+  } else {
+    if (danaStatusBadge) {
+      danaStatusBadge.className = 'badge-pill badge-offline';
+      danaStatusBadge.textContent = 'Belum Terhubung';
+    }
+    if (btnConnectDana) btnConnectDana.style.display = 'inline-block';
+    if (btnDisconnectDana) btnDisconnectDana.style.display = 'none';
+    if (btnCheckDanaMutasi) btnCheckDanaMutasi.style.display = 'none';
+    if (danaAutoPollBox) danaAutoPollBox.style.display = 'none';
+    if (danaPollTimer) clearTimeout(danaPollTimer);
+  }
+}
+
+async function connectDanaManual() {
+  const token = danaTokenInput?.value?.trim();
+  const merchantId = danaMerchantIdInput?.value?.trim();
+  if (!token) {
+    alert('Silakan masukkan Access Token atau Cookie DANA Bisnis!');
+    return;
+  }
+
+  if (btnConnectDana) btnConnectDana.disabled = true;
+  if (connectDanaBtnText) connectDanaBtnText.textContent = 'Menghubungkan...';
+
+  try {
+    const res = await fetch('/api/dana/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        accessToken: token.startsWith('Bearer ') ? token.slice(7) : token,
+        merchantId: merchantId || null
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setDanaConnectedState(true, data.session?.merchantName || 'DANA Merchant');
+      localStorage.setItem('qripay_dana_token', token);
+      alert('✅ Akun DANA Bisnis berhasil terhubung!');
+    } else {
+      alert(`Gagal menghubungkan DANA: ${data.message || 'Error'}`);
+      setDanaConnectedState(false);
+    }
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+    setDanaConnectedState(false);
+  } finally {
+    if (btnConnectDana) btnConnectDana.disabled = false;
+    if (connectDanaBtnText) connectDanaBtnText.textContent = 'Sambungkan DANA Bisnis';
+  }
+}
+
+async function disconnectDana() {
+  await fetch('/api/dana/disconnect', { method: 'POST' });
+  localStorage.removeItem('qripay_dana_token');
+  setDanaConnectedState(false);
+}
+
+// DANA OTP Handlers
+if (btnSendDanaOtp) {
+  btnSendDanaOtp.addEventListener('click', async () => {
+    const phone = danaPhoneInput?.value?.trim();
+    if (!phone) {
+      alert('Masukkan nomor HP akun DANA Bisnis Anda!');
+      return;
+    }
+    btnSendDanaOtp.disabled = true;
+    btnSendDanaOtp.textContent = 'Mengirim...';
+    try {
+      const res = await fetch('/api/dana/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentOtpToken = data.data?.otp_token;
+        currentDeviceId = data.data?.deviceId;
+        if (danaOtpStep2) danaOtpStep2.style.display = 'block';
+        alert('✅ Kode OTP berhasil dikirim via SMS/WhatsApp DANA. Masukkan kode tersebut.');
+      } else {
+        alert(`Gagal kirim OTP: ${data.message}`);
+      }
+    } catch (e) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      btnSendDanaOtp.disabled = false;
+      btnSendDanaOtp.textContent = 'Kirim Ulang OTP';
+    }
+  });
+}
+
+if (btnVerifyDanaOtp) {
+  btnVerifyDanaOtp.addEventListener('click', async () => {
+    const phone = danaPhoneInput?.value?.trim();
+    const otp = danaOtpInput?.value?.trim();
+    if (!otp) {
+      alert('Masukkan kode OTP!');
+      return;
+    }
+    btnVerifyDanaOtp.disabled = true;
+    btnVerifyDanaOtp.textContent = 'Memverifikasi...';
+    try {
+      const res = await fetch('/api/dana/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          otp,
+          otpToken: currentOtpToken,
+          deviceId: currentDeviceId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDanaConnectedState(true, data.session?.merchant_name || 'DANA Merchant');
+        alert('🎉 Berhasil login DANA Bisnis!');
+      } else {
+        alert(`Verifikasi OTP gagal: ${data.message}`);
+      }
+    } catch (e) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      btnVerifyDanaOtp.disabled = false;
+      btnVerifyDanaOtp.textContent = 'Verifikasi OTP';
+    }
+  });
+}
+
+async function pollDanaLoop() {
+  if (!isDanaConnected || (cbDanaAutoPoll && !cbDanaAutoPoll.checked)) {
+    danaPollTimer = setTimeout(pollDanaLoop, 4000);
+    return;
+  }
+
+  try {
+    const store = STORES[currentStore === 'all' ? 'pempek' : currentStore];
+    const res = await fetch(`/api/dana/poll-transactions?storeId=${store.id}&storeName=${encodeURIComponent(store.name)}`);
+    const data = await res.json();
+
+    if (data.connected && data.success) {
+      if (danaPollStatusText) {
+        danaPollStatusText.textContent = `Aktif (Cek DANA: ${new Date().toLocaleTimeString('id-ID')})`;
+      }
+      if (data.hasNew && Array.isArray(data.newPayments)) {
+        data.newPayments.forEach(payment => {
+          handlePaymentEvent(payment);
+        });
+      }
+    } else if (data.connected === false) {
+      setDanaConnectedState(false);
+    }
+  } catch (err) {
+    if (danaPollStatusText) danaPollStatusText.textContent = 'Menghubungkan DANA...';
+  } finally {
+    danaPollTimer = setTimeout(pollDanaLoop, 4000);
+  }
+}
+
+function startDanaPolling() {
+  if (danaPollTimer) clearTimeout(danaPollTimer);
+  pollDanaLoop();
+}
+
+async function checkDanaMutasi() {
+  if (!btnCheckDanaMutasi) return;
+  btnCheckDanaMutasi.disabled = true;
+  btnCheckDanaMutasi.textContent = 'Mengambil Data...';
+  try {
+    const res = await fetch('/api/dana/transactions');
+    const data = await res.json();
+    if (data.success && data.data?.transactions) {
+      const list = data.data.transactions;
+      alert(`✅ Berhasil mengambil ${list.length} mutasi DANA terbaru!`);
+      list.slice(0, 5).forEach(tx => {
+        addTransactionToFeed({
+          amount: tx.amount,
+          storeId: currentStore === 'all' ? 'pempek' : currentStore,
+          storeName: STORES[currentStore === 'all' ? 'pempek' : currentStore].name,
+          payer: tx.issuer || 'DANA Payer',
+          source: 'DANA Bisnis (Mutasi)',
+          timestamp: tx.time || new Date().toISOString()
+        });
+      });
+    } else {
+      alert(`Gagal mengambil mutasi DANA: ${data.error || 'Terjadi kesalahan'}`);
+    }
+  } catch (e) {
+    alert(`Error: ${e.message}`);
+  } finally {
+    btnCheckDanaMutasi.disabled = false;
+    btnCheckDanaMutasi.textContent = 'Tarik Mutasi DANA 🔄';
+  }
+}
+
+if (btnConnectDana) btnConnectDana.addEventListener('click', connectDanaManual);
+if (btnDisconnectDana) btnDisconnectDana.addEventListener('click', disconnectDana);
+if (btnCheckDanaMutasi) btnCheckDanaMutasi.addEventListener('click', checkDanaMutasi);
+
+// Initial check
+checkDanaStatus();

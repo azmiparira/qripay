@@ -269,8 +269,130 @@
       <!-- Right Column: Real-Time Feed & Shopee Connection Guide -->
       <section class="info-column">
         
+        <!-- Gateway Switcher Bar -->
+        <div class="gateway-switch-bar">
+          <button type="button" id="tabGatewayDana" class="gateway-btn active">
+            <span class="gw-logo">💳</span>
+            <div class="gw-text">
+              <strong>DANA Bisnis Gateway</strong>
+              <small>Auto-Detect & Custom QRIS</small>
+            </div>
+            <span class="gw-badge-active">Direkomendasikan</span>
+          </button>
+          <button type="button" id="tabGatewayShopee" class="gateway-btn">
+            <span class="gw-logo">🛒</span>
+            <div class="gw-text">
+              <strong>Shopee Partner</strong>
+              <small>Shopee Merchant Poller</small>
+            </div>
+          </button>
+        </div>
+
+        <!-- DANA Bisnis Merchant Gateway Card (yono99/dana-api-gateway) -->
+        <div class="card dana-card" id="danaGatewayCard">
+          <div class="card-header">
+            <div class="header-with-badge">
+              <div class="dana-badge-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                  <line x1="2" y1="10" x2="22" y2="10"></line>
+                </svg>
+              </div>
+              <div>
+                <h3>DANA Bisnis Gateway</h3>
+                <p class="card-desc">Integrasi langsung DANA Merchant (Pendeteksi Transaksi Otomatis)</p>
+              </div>
+            </div>
+            <span id="danaStatusBadge" class="badge-pill badge-offline">Belum Terhubung</span>
+          </div>
+
+          <div class="dana-body">
+            <!-- Method Selector: Token/Cookie vs OTP -->
+            <div class="dana-auth-tabs">
+              <button type="button" id="btnDanaTabToken" class="dana-tab-btn active">Import Token / Cookie</button>
+              <button type="button" id="btnDanaTabOtp" class="dana-tab-btn">Login via OTP (SMS/WA)</button>
+            </div>
+
+            <!-- View 1: Token / Cookie Import -->
+            <div id="danaTokenView" class="dana-view-panel">
+              <div class="shopee-token-input-group">
+                <label for="danaTokenInput">Access Token / Sesi DANA Bisnis:</label>
+                <div class="token-input-wrapper">
+                  <input type="password" id="danaTokenInput" placeholder="Tempel Access Token atau Cookie di sini" autocomplete="off" spellcheck="false">
+                  <button type="button" id="btnToggleDanaToken" class="btn-icon" title="Lihat Token">👁️</button>
+                </div>
+              </div>
+
+              <div class="shopee-token-input-group" style="margin-top: 10px;">
+                <label for="danaMerchantIdInput">Merchant ID (Opsional):</label>
+                <input type="text" id="danaMerchantIdInput" class="form-input-sm" placeholder="Contoh: 2166200000...">
+              </div>
+
+              <div class="shopee-actions" style="margin-top: 14px;">
+                <button id="btnConnectDana" class="btn-dana">
+                  <span id="connectDanaBtnText">Sambungkan DANA Bisnis</span>
+                </button>
+                <button id="btnDisconnectDana" class="btn-danger-outline" style="display:none;">Putuskan</button>
+                <button id="btnCheckDanaMutasi" class="btn-outline-sm" style="display:none;">Tarik Mutasi DANA 🔄</button>
+              </div>
+            </div>
+
+            <!-- View 2: Terminal OTP Login -->
+            <div id="danaOtpView" class="dana-view-panel" style="display:none;">
+              <div class="shopee-token-input-group">
+                <label for="danaPhoneInput">Nomor HP Akun DANA Bisnis:</label>
+                <div class="input-with-button">
+                  <input type="text" id="danaPhoneInput" placeholder="Contoh: 081234567890" class="form-input-sm">
+                  <button type="button" id="btnSendDanaOtp" class="btn-primary-sm">Kirim OTP</button>
+                </div>
+              </div>
+
+              <div id="danaOtpStep2" class="shopee-token-input-group" style="display:none; margin-top: 12px;">
+                <label for="danaOtpInput">Masukkan Kode OTP dari SMS/WA:</label>
+                <div class="input-with-button">
+                  <input type="text" id="danaOtpInput" placeholder="4 - 6 digit angka" maxlength="8" class="form-input-sm">
+                  <button type="button" id="btnVerifyDanaOtp" class="btn-success-sm">Verifikasi OTP</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Auto-Polling Checkbox for DANA -->
+            <div class="auto-poll-box" id="danaAutoPollBox" style="display:none; margin-top: 14px;">
+              <label class="toggle-container">
+                <input type="checkbox" id="cbDanaAutoPoll" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">
+                  <strong>Auto-Soundbox DANA Aktif</strong>
+                  <small>Mengecek mutasi DANA Bisnis setiap 4 detik & otomatis bersuara saat lunas</small>
+                </span>
+              </label>
+              <div class="poll-live-indicator">
+                <span class="pulse-dot"></span>
+                <span id="danaPollStatusText">Memantau transaksi DANA...</span>
+              </div>
+            </div>
+
+            <!-- DANA Tutorial Accordion -->
+            <details class="shopee-tutorial" style="margin-top: 14px;">
+              <summary>📖 <strong>Tutorial Cara Menghubungkan DANA Bisnis (Mudah)</strong></summary>
+              <div class="tutorial-content">
+                <p><strong>Opsi 1: Lewat Web Portal (business.dana.id)</strong></p>
+                <ol>
+                  <li>Buka website <a href="https://business.dana.id" target="_blank" class="shopee-link">business.dana.id ↗</a> di browser laptop Anda dan login.</li>
+                  <li>Tekan tombol <code>F12</code> &gt; pilih tab <strong>Network</strong>.</li>
+                  <li>Cari request ke <code>transactions</code> atau <code>dashboard</code>.</li>
+                  <li>Salin nilai header <code>Authorization: Bearer &lt;token&gt;</code> atau <code>Cookie</code>.</li>
+                  <li>Tempelkan ke kolom input di atas lalu klik <strong>Sambungkan DANA Bisnis</strong>!</li>
+                </ol>
+                <p style="margin-top:8px;"><strong>Opsi 2: Lewat Terminal CLI (1x Saja)</strong></p>
+                <p>Buka terminal di folder projek dan jalankan: <code>node tools/dana-api-gateway/login.js</code> lalu ikuti instruksi OTP.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+
         <!-- Shopee Partner API Gateway Integration Card -->
-        <div class="card shopee-card">
+        <div class="card shopee-card" id="shopeeGatewayCard" style="display:none;">
           <div class="card-header">
             <div class="header-with-badge">
               <div class="shopee-badge-icon">

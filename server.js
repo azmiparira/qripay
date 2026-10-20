@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
 const crypto = require('crypto');
+const danaSessionManager = require('./danaSessionManager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -738,6 +739,195 @@ app.get('/api/shopee/poll-transactions', async (req, res) => {
     });
   } catch (err) {
     res.json({ success: false, error: err.message });
+  }
+});
+
+// ==============================================================================
+// 2B. DEDICATED DANA BISNIS MERCHANT GATEWAY (yono99/dana-api-gateway integration)
+// ==============================================================================
+
+const knownDanaTxIds = new Set();
+let isInitialDanaSync = true;
+let lastDanaCheckTime = null;
+
+app.get('/api/dana/status', async (req, res) => {
+  const session = danaSessionManager.loadSession();
+  const connected = !!(session && (session.access_token || session.cookie));
+  res.json({
+    success: true,
+    connected,
+    merchantName: session?.merchant_name || session?.merchant_id || null,
+    phoneNumber: session?.phone_number || null,
+    expiresAt: session?.expires_at || null,
+    isExpired: session ? danaSessionManager.isExpired(session) : true,
+    lastChecked: lastDanaCheckTime,
+    knownTransactionsCount: knownDanaTxIds.size
+  });
+});
+
+app.post('/api/dana/connect', async (req, res) => {
+  const { accessToken, cookie, merchantId, merchantName, phone } = req.body;
+  if (!accessToken && !cookie) {
+    return res.status(400).json({ success: false, message: 'Minimal masukkan Access Token atau Cookie DANA Bisnis!' });
+  }
+
+  const session = danaSessionManager.saveSession({
+    access_token: accessToken ? accessToken.trim() : null,
+    cookie: cookie ? cookie.trim() : null,
+    merchant_id: merchantId ? merchantId.trim() : null,
+    merchant_name: merchantName ? merchantName.trim() : null,
+    phone_number: phone ? phone.trim() : null,
+    expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+    login_method: 'manual_connect'
+  });
+
+  isInitialDanaSync = true;
+  lastDanaCheckTime = new Date().toISOString();
+  logEvent('INFO', `✅ DANA Bisnis connected! Merchant: ${session.merchant_name || session.merchant_id || 'Active'}`);
+
+  res.json({
+    success: true,
+    message: 'Akun DANA Bisnis berhasil terhubung!',
+    session: {
+      merchantName: session.merchant_name,
+      merchantId: session.merchant_id,
+      expiresAt: session.expires_at
+    }
+  });
+});
+
+app.post('/api/dana/disconnect', (req, res) => {
+  danaSessionManager.clearSession();
+  knownDanaTxIds.clear();
+  isInitialDanaSync = true;
+  logEvent('INFO', 'DANA Bisnis disconnected.');
+  res.json({ success: true, message: 'Koneksi DANA Bisnis telah diputuskan.' });
+});
+
+app.post('/api/dana/otp/send', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ success: false, message: 'Masukkan nomor HP DANA Bisnis!' });
+  try {
+    const result = await danaSessionManager.requestOtp(phone);
+    res.json({ success: true, message: 'Kode OTP telah dikirim ke nomor DANA via SMS/WA.', data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.post('/api/dana/otp/verify', async (req, res) => {
+  const { phone, otp, otpToken, deviceId } = req.body;
+  if (!otp || !phone) return res.status(400).json({ success: false, message: 'Nomor HP dan kode OTP wajib diisi!' });
+  try {
+    const session = await danaSessionManager.verifyOtp(phone, otp, otpToken, deviceId);
+    isInitialDanaSync = true;
+    res.json({ success: true, message: 'Berhasil login DANA Bisnis!', session });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.get('/api/dana/poll-transactions', async (req, res) => {
+  const headers = await danaSessionManager.getValidHeaders(req.headers['user-agent']);
+  if (!headers) {
+    return res.json({ success: false, connected: false, message: 'DANA Bisnis belum terhubung' });
+  }
+
+  const session = danaSessionManager.loadSession();
+  const merchantId = session?.merchant_id || process.env.DANA_MERCHANT_ID || '';
+  const now = new Date();
+  const from = new Date(now.getTime() - 15 * 60 * 1000).toISOString();
+
+  try {
+    const response = await danaSessionManager.fetchDanaTransactions(headers, {
+      merchantId,
+      merchant_id: merchantId,
+      pageSize: 20,
+      size: 20,
+      startTime: from,
+      endTime: now.toISOString(),
+      status: 'SUCCESS,SETTLED'
+    });
+
+    lastDanaCheckTime = new Date().toISOString();
+
+    const rawList = danaSessionManager.extractRawTransactions(response.data);
+    const normalized = danaSessionManager.normalizeTransactions(rawList);
+
+    if (isInitialDanaSync) {
+      normalized.forEach(tx => {
+        const id = tx.transaction_id || tx.order_id;
+        if (id) knownDanaTxIds.add(id);
+      });
+      isInitialDanaSync = false;
+      return res.json({ success: true, connected: true, hasNew: false, initialSync: true, totalChecked: normalized.length });
+    }
+
+    const newPayments = [];
+    for (const tx of normalized) {
+      const txId = tx.transaction_id || tx.order_id;
+      if (!txId) continue;
+
+      if ((tx.status === 'success' || tx.status === 'settled') && !knownDanaTxIds.has(txId)) {
+        knownDanaTxIds.add(txId);
+
+        const storeId = req.query.storeId || 'pempek';
+        const storeName = req.query.storeName || 'Pempek Bandung';
+
+        const broadcasted = recordAndBroadcast({
+          transactionId: txId,
+          storeId,
+          storeName,
+          amount: tx.amount,
+          payer: tx.issuer || 'DANA / Bank',
+          source: 'DANA Bisnis Gateway',
+          rawText: `DANA Trx: Rp ${tx.amount.toLocaleString('id-ID')} via ${tx.issuer}`
+        });
+
+        newPayments.push(broadcasted);
+      }
+    }
+
+    res.json({
+      success: true,
+      connected: true,
+      hasNew: newPayments.length > 0,
+      newPayments,
+      totalChecked: normalized.length
+    });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/dana/transactions', async (req, res) => {
+  const headers = await danaSessionManager.getValidHeaders(req.headers['user-agent']);
+  if (!headers) return res.status(400).json({ success: false, error: 'DANA Bisnis belum terhubung' });
+
+  const session = danaSessionManager.loadSession();
+  const merchantId = session?.merchant_id || process.env.DANA_MERCHANT_ID || '';
+  const now = new Date();
+  const from = new Date(now.getTime() - 3 * 24 * 3600 * 1000).toISOString();
+
+  try {
+    const response = await danaSessionManager.fetchDanaTransactions(headers, {
+      merchantId,
+      merchant_id: merchantId,
+      pageSize: 30,
+      startTime: from,
+      endTime: now.toISOString()
+    });
+
+    const rawList = danaSessionManager.extractRawTransactions(response.data);
+    const normalized = danaSessionManager.normalizeTransactions(rawList);
+
+    res.json({
+      success: true,
+      total_count: normalized.length,
+      data: { transactions: normalized }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

@@ -1260,3 +1260,136 @@ body {
   border-color: var(--primary);
   color: #fff;
 }
+
+/* Gateway Switcher */
+.gateway-switch-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.gateway-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+.gateway-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+}
+.gateway-btn.active {
+  background: rgba(0, 133, 202, 0.12);
+  border-color: #0085ca;
+  color: #38bdf8;
+}
+.gw-logo {
+  font-size: 20px;
+}
+.gw-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.gw-text strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+.gw-text small {
+  font-size: 11px;
+  opacity: 0.75;
+}
+.gw-badge-active {
+  font-size: 10px;
+  background: #0085ca;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+/* DANA Card Styles */
+.dana-card {
+  border-color: rgba(0, 133, 202, 0.4);
+}
+.dana-badge-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(0, 133, 202, 0.2);
+  color: #0085ca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dana-auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  background: #0f172a;
+  padding: 4px;
+  border-radius: 8px;
+}
+.dana-tab-btn {
+  flex: 1;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.dana-tab-btn.active {
+  background: #0085ca;
+  color: #fff;
+}
+.btn-dana {
+  background: #0085ca;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-dana:hover {
+  background: #0070aa;
+}
+.input-with-button {
+  display: flex;
+  gap: 8px;
+}
+.btn-primary-sm {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-success-sm {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
