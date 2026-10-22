@@ -1358,6 +1358,22 @@ body {
   border-radius: 10px;
   font-weight: 700;
 }
+.badge-grab-official {
+  font-size: 11px;
+  background: rgba(0, 177, 79, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(0, 177, 79, 0.3);
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.grab-brand-logo {
+  background: linear-gradient(135deg, #00b14f 0%, #00873c 100%) !important;
+  color: #fff !important;
+}
 .dana-badge-icon {
   width: 36px;
   height: 36px;

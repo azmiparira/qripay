@@ -3,40 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QRIPAY - Prototipe QRIS Soundbox Statis</title>
-  <link rel="stylesheet" href="style.css">
+  <title>QriPay Soundbox — GrabMerchant Official Gateway</title>
+  <link rel="stylesheet" href="/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/logo.png">
 </head>
 <body>
-  <div class="app-container">
+  <div class="app-layout">
     <!-- Header -->
-    <header class="navbar">
-      <div class="brand">
-        <div class="brand-logo">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-          </svg>
+    <header class="app-header">
+      <div class="header-content">
+        <div class="brand">
+          <div class="brand-logo grab-brand-logo">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title-wrap">
+              <h1 class="brand-title">QriPay Soundbox</h1>
+              <span class="badge-grab-official">🟢 GrabMerchant Gateway</span>
+            </div>
+            <p class="brand-subtitle">Virtual Soundbox Pintar • Auto-Detect Saldo QRIS GrabMerchant</p>
+          </div>
         </div>
-        <div>
-          <h1 class="brand-title">QRIPAY <span>SOUNDBOX</span></h1>
-          <p class="brand-subtitle">Prototipe Notifikasi Suara QRIS Statis Merchant</p>
+
+        <div class="header-status">
+          <div class="status-indicator online">
+            <span class="dot"></span>
+            <span id="gatewayStatusText">GrabMerchant Online</span>
+          </div>
+          <button id="btnHeaderSimulate" class="btn-test-action" title="Uji Coba Suara">
+            ⚡ Tes Bunyi Suara
+          </button>
         </div>
-      </div>
-      <div class="header-status">
-        <span class="status-indicator"></span>
-        <span id="serverStatusText">Sistem Standby (Realtime)</span>
       </div>
     </header>
 
-    <!-- Branch / Anak Perusahaan Navigation Bar -->
-    <section class="branch-nav-card">
-      <div class="branch-nav-top">
-        <div class="branch-title-group">
-          <span class="branch-nav-badge">MULTI-STORE OUTLET</span>
+    <!-- Branch Selector Bar -->
+    <section class="branch-nav">
+      <div class="branch-nav-header">
+        <div class="branch-nav-title-wrap">
+          <span class="branch-nav-icon">🏪</span>
           <h2 class="branch-nav-title">Pilih Cabang / Anak Perusahaan</h2>
         </div>
         <div class="voice-preset-group">
@@ -55,7 +67,7 @@
           <span class="tab-emoji">🥘</span>
           <div class="tab-text">
             <strong>Pempek Bandung</strong>
-            <small>Cabang Bandung • ID75498</small>
+            <small>QRIS Custom • Cabang 1</small>
           </div>
           <span class="tab-indicator"></span>
         </button>
@@ -64,7 +76,7 @@
           <span class="tab-emoji">🥟</span>
           <div class="tab-text">
             <strong>Batagor Bandung</strong>
-            <small>Cabang Bandung • ID23585</small>
+            <small>QRIS Custom • Cabang 2</small>
           </div>
           <span class="tab-indicator"></span>
         </button>
@@ -73,7 +85,16 @@
           <span class="tab-emoji">🍲</span>
           <div class="tab-text">
             <strong>Soto Lamongan</strong>
-            <small>Cabang Lamongan • ID82117</small>
+            <small>QRIS Custom • Cabang 3</small>
+          </div>
+          <span class="tab-indicator"></span>
+        </button>
+
+        <button class="branch-tab" data-store="pusat">
+          <span class="tab-emoji">🍹</span>
+          <div class="tab-text">
+            <strong>Jus Smoothies (Pusat)</strong>
+            <small>Master QRIS Grab • Janji Jawa</small>
           </div>
           <span class="tab-indicator"></span>
         </button>
@@ -82,16 +103,7 @@
           <span class="tab-emoji">🏢</span>
           <div class="tab-text">
             <strong>Semua Cabang</strong>
-            <small>Owner Multi-Monitor View</small>
-          </div>
-          <span class="tab-indicator"></span>
-        </button>
-
-        <button class="branch-tab" data-store="pusat">
-          <span class="tab-emoji">🏬</span>
-          <div class="tab-text">
-            <strong>Janji Jawa (Pusat)</strong>
-            <small>NMID Utama • ID10254</small>
+            <small>Multi-Monitor Soundbox</small>
           </div>
           <span class="tab-indicator"></span>
         </button>
@@ -112,7 +124,7 @@
             </svg>
             <span id="audioBtnText">KLIK 1X UNTUK MENGAKTIFKAN SUARA SOUNDBOX</span>
           </button>
-          <p class="audio-hint">⚠️ Browser wajib diizinkan bersuara 1 kali agar notifikasi dapat berbunyi otomatis saat ada pembayaran masuk.</p>
+          <p class="audio-hint">⚠️ Klik tombol di atas 1 kali agar browser diizinkan berbunyi otomatis saat ada pembeli yang scan QRIS.</p>
         </div>
 
         <!-- 1. SINGLE STORE SOUNDBOX VIEW -->
@@ -122,7 +134,7 @@
             <span class="store-badge-icon" id="storeBadgeIcon">🥘</span>
             <div class="store-badge-details">
               <h3 id="storeBadgeName">Pempek Bandung</h3>
-              <p id="storeBadgeCity">Outlet Resmi • Kota Bandung (NMID: ID7549815959905)</p>
+              <p id="storeBadgeCity">Outlet Resmi • Master GrabMerchant (NMID: ID1025433207095)</p>
             </div>
           </div>
 
@@ -157,48 +169,55 @@
             <div class="card-header">
               <div>
                 <h3 id="qrisCardTitle">Poster QRIS Resmi Pempek Bandung</h3>
-                <p class="card-desc">Scan untuk menguji pembayaran ke cabang ini</p>
+                <p class="card-desc">Scan menggunakan BCA, Mandiri, BRI, Dana, GoPay, OVO, dll.</p>
               </div>
-              <span class="badge-pill" id="qrisTypeBadge">QRIS Statis Cabang</span>
+              <span class="badge-pill badge-live">Grab QRIS Valid</span>
             </div>
-            <div class="qris-content">
-              <div class="qris-image-wrapper">
-                <img id="qrisImage" src="/qris_pempekbandung.png" alt="QRIS Toko">
-              </div>
-              <p class="qris-instruction" id="qrisInstructionText">Silakan scan kode QR di atas menggunakan aplikasi apa saja (BCA, Mandiri, BRI, DANA, GoPay, ShopeePay, OVO).</p>
-            </div>
-          </div>
 
-          <!-- Quick Test Simulator -->
-          <div class="card simulator-card">
-            <div class="card-header">
-              <div>
-                <h3>Simulasi Pembayaran Cabang Ini</h3>
-                <p class="card-desc" id="simDescStore">Menguji suara soundbox khusus toko Pempek Bandung</p>
+            <div class="qris-display-body">
+              <div class="qris-wrapper">
+                <img id="qrisImage" src="/qris_pempekbandung.png" alt="QRIS Code" class="qris-img">
+                <div class="qris-scan-overlay">
+                  <span class="scan-line"></span>
+                </div>
               </div>
-            </div>
-            <div class="chip-grid">
-              <button class="chip-btn" data-amount="10000">Rp 10.000</button>
-              <button class="chip-btn" data-amount="20000">Rp 20.000</button>
-              <button class="chip-btn" data-amount="35000">Rp 35.000</button>
-              <button class="chip-btn" data-amount="50000">Rp 50.000</button>
-            </div>
-            <div class="custom-sim-row">
-              <div class="input-group">
-                <span class="currency-prefix">Rp</span>
-                <input type="number" id="customAmount" placeholder="Nominal lain" value="15000">
+
+              <div class="qris-details">
+                <div class="detail-row">
+                  <span class="detail-label">Merchant Name</span>
+                  <strong class="detail-val" id="qrisMerchantName">PEMPEK BANDUNG</strong>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">NMID Nasional</span>
+                  <span class="detail-val font-mono">ID1025433207095</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Acquirer Gateway</span>
+                  <span class="detail-val">GrabPay / OVO (PT Visionet)</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Lokasi Toko</span>
+                  <span class="detail-val">Bandung, Jawa Barat (40614)</span>
+                </div>
+
+                <div class="qris-actions" style="margin-top: 15px;">
+                  <a id="btnDownloadQR" href="/qris_pempekbandung.png" download="QRIS_Pempek_Bandung.png" class="btn-primary-action">
+                    Download Poster QRIS 📥
+                  </a>
+                  <button id="btnQuickTest" class="btn-outline-action">
+                    Simulasi Bayar Rp 15.000 ⚡
+                  </button>
+                </div>
               </div>
-              <button id="btnSimulate" class="btn-primary">Tes Bunyi Toko Ini 🔔</button>
             </div>
           </div>
         </div>
 
-        <!-- 2. MULTI-STORE OWNER VIEW (Shown when 'Semua Cabang' selected) -->
+        <!-- 2. MULTI STORE VIEW (All Branches) -->
         <div id="multiSoundboxView" style="display: none;">
-          <div class="multi-soundbox-banner">
-            <span class="badge-pill badge-online">MONITOR PUSAT AKTIF</span>
-            <h3>Dashboard Soundbox 3 Anak Perusahaan</h3>
-            <p>Masing-masing soundbox di bawah mewakili perangkat fisik di tiap cabang toko.</p>
+          <div class="multi-header-banner">
+            <h3>Dashboard Soundbox Multi-Cabang</h3>
+            <p>Memantau transaksi seluruh cabang toko secara real-time dari satu layar.</p>
           </div>
 
           <div class="multi-boxes-grid">
@@ -217,7 +236,7 @@
                 <div class="mini-led-info" id="miniInfoPempek">Siap melayani</div>
               </div>
               <div class="mini-qris-thumb">
-                <img src="/qris_pempekbandung_scan.png" alt="QR Pempek">
+                <img src="/qris_pempekbandung.png" alt="QR Pempek">
               </div>
               <button class="btn-mini-test" data-store="pempek" data-amount="15000">Tes Bayar Rp 15.000</button>
             </div>
@@ -237,7 +256,7 @@
                 <div class="mini-led-info" id="miniInfoBatagor">Siap melayani</div>
               </div>
               <div class="mini-qris-thumb">
-                <img src="/qris_batagorbandung_scan.png" alt="QR Batagor">
+                <img src="/qris_batagorbandung.png" alt="QR Batagor">
               </div>
               <button class="btn-mini-test" data-store="batagor" data-amount="20000">Tes Bayar Rp 20.000</button>
             </div>
@@ -257,7 +276,7 @@
                 <div class="mini-led-info" id="miniInfoSoto">Siap melayani</div>
               </div>
               <div class="mini-qris-thumb">
-                <img src="/qris_sotolamongan_scan.png" alt="QR Soto">
+                <img src="/qris_sotolamongan.png" alt="QR Soto">
               </div>
               <button class="btn-mini-test" data-store="soto" data-amount="25000">Tes Bayar Rp 25.000</button>
             </div>
@@ -266,35 +285,9 @@
 
       </section>
 
-      <!-- Right Column: Real-Time Feed & Shopee Connection Guide -->
+      <!-- Right Column: Real-Time Feed & GrabMerchant Integration Card -->
       <section class="info-column">
         
-        <!-- Gateway Switcher Bar -->
-        <div class="gateway-switch-bar">
-          <button type="button" id="tabGatewayGrab" class="gateway-btn active">
-            <span class="gw-logo">🟢</span>
-            <div class="gw-text">
-              <strong>GrabMerchant Gateway</strong>
-              <small>Auto-Detect QRIS & OVO (Aktif)</small>
-            </div>
-            <span class="gw-badge-grab">Online</span>
-          </button>
-          <button type="button" id="tabGatewayDana" class="gateway-btn">
-            <span class="gw-logo">💳</span>
-            <div class="gw-text">
-              <strong>DANA Bisnis</strong>
-              <small>Forwarder Notif</small>
-            </div>
-          </button>
-          <button type="button" id="tabGatewayShopee" class="gateway-btn">
-            <span class="gw-logo">🛒</span>
-            <div class="gw-text">
-              <strong>Shopee Partner</strong>
-              <small>Shopee Poller</small>
-            </div>
-          </button>
-        </div>
-
         <!-- GrabMerchant Gateway Card -->
         <div class="card grab-card" id="grabGatewayCard">
           <div class="card-header">
@@ -308,7 +301,7 @@
               </div>
               <div>
                 <h3>GrabMerchant Portal Gateway</h3>
-                <p class="card-desc">Terkoneksi langsung ke API GrabMerchant (Otomatis Deteksi Saldo Masuk)</p>
+                <p class="card-desc">Koneksi langsung ke server GrabMerchant (Otomatis Deteksi Saldo)</p>
               </div>
             </div>
             <span id="grabStatusBadge" class="badge-pill badge-live">🟢 Terhubung</span>
@@ -317,11 +310,11 @@
           <div class="grab-body" style="padding: 16px;">
             <div class="merchant-info-box" style="background: rgba(0, 177, 79, 0.08); border: 1px solid rgba(0, 177, 79, 0.25); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Toko Grab Terhubung</span>
-                <span style="font-size: 11px; background: rgba(0, 177, 79, 0.2); color: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Jus Smoothies Cipadung</span>
+                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Toko GrabMerchant Aktif</span>
+                <span style="font-size: 11px; background: rgba(0, 177, 79, 0.2); color: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: 600;">OVO / QRIS Online</span>
               </div>
               <strong id="grabStoreName" style="display: block; font-size: 14px; color: #fff;">Jus Smoothies - Janji Jawa - AZMI ADI PARIRA</strong>
-              <small id="grabStoreId" style="display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px;">Store ID: 03555c6f-2c66-466d-8c26-a404adbc8ebb</small>
+              <small id="grabStoreId" style="display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px;">Store ID: 03555c6f-2c66-466d-8c26-a404adbc8ebb • Bandung</small>
             </div>
 
             <!-- Auto-Polling Checkbox for Grab -->
@@ -330,8 +323,8 @@
                 <input type="checkbox" id="cbGrabAutoPoll" checked>
                 <span class="toggle-slider"></span>
                 <span class="toggle-label">
-                  <strong>Auto-Soundbox GrabMerchant Aktif</strong>
-                  <small>Mengecek mutasi QRIS Grab setiap 4 detik & otomatis bersuara saat lunas</small>
+                  <strong>Auto-Soundbox Real-Time Aktif</strong>
+                  <small>Mengecek transaksi QRIS Grab setiap 3 detik & otomatis bersuara saat ada uang masuk</small>
                 </span>
               </label>
               <div class="poll-live-indicator">
@@ -341,260 +334,40 @@
             </div>
 
             <div class="shopee-actions">
-              <button id="btnCheckGrabMutasi" class="btn-grab">
+              <button id="btnCheckGrabMutasi" class="btn-grab" style="width: 100%;">
                 <span>Tarik Mutasi Grab Sekarang 🔄</span>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- DANA Bisnis Merchant Gateway Card (yono99/dana-api-gateway) -->
-        <div class="card dana-card" id="danaGatewayCard" style="display:none;">
-          <div class="card-header">
-            <div class="header-with-badge">
-              <div class="dana-badge-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                  <line x1="2" y1="10" x2="22" y2="10"></line>
-                </svg>
-              </div>
-              <div>
-                <h3>DANA Bisnis Gateway</h3>
-                <p class="card-desc">Integrasi langsung DANA Merchant (Pendeteksi Transaksi Otomatis)</p>
-              </div>
-            </div>
-            <span id="danaStatusBadge" class="badge-pill badge-offline">Belum Terhubung</span>
-          </div>
-
-          <div class="dana-body">
-            <!-- Method Selector: Token/Cookie vs OTP -->
-            <div class="dana-auth-tabs">
-              <button type="button" id="btnDanaTabToken" class="dana-tab-btn active">Import Token / Cookie</button>
-              <button type="button" id="btnDanaTabOtp" class="dana-tab-btn">Login via OTP (SMS/WA)</button>
-            </div>
-
-            <!-- View 1: Token / Cookie Import -->
-            <div id="danaTokenView" class="dana-view-panel">
-              <div class="shopee-token-input-group">
-                <label for="danaTokenInput">Access Token / Sesi DANA Bisnis:</label>
-                <div class="token-input-wrapper">
-                  <input type="password" id="danaTokenInput" placeholder="Tempel Access Token atau Cookie di sini" autocomplete="off" spellcheck="false">
-                  <button type="button" id="btnToggleDanaToken" class="btn-icon" title="Lihat Token">👁️</button>
-                </div>
-              </div>
-
-              <div class="shopee-token-input-group" style="margin-top: 10px;">
-                <label for="danaMerchantIdInput">Merchant ID (Opsional):</label>
-                <input type="text" id="danaMerchantIdInput" class="form-input-sm" placeholder="Contoh: 2166200000...">
-              </div>
-
-              <div class="shopee-actions" style="margin-top: 14px;">
-                <button id="btnConnectDana" class="btn-dana">
-                  <span id="connectDanaBtnText">Sambungkan DANA Bisnis</span>
-                </button>
-                <button id="btnDisconnectDana" class="btn-danger-outline" style="display:none;">Putuskan</button>
-                <button id="btnCheckDanaMutasi" class="btn-outline-sm" style="display:none;">Tarik Mutasi DANA 🔄</button>
-              </div>
-            </div>
-
-            <!-- View 2: Terminal OTP Login -->
-            <div id="danaOtpView" class="dana-view-panel" style="display:none;">
-              <div class="shopee-token-input-group">
-                <label for="danaPhoneInput">Nomor HP Akun DANA Bisnis:</label>
-                <div class="input-with-button">
-                  <input type="text" id="danaPhoneInput" placeholder="Contoh: 081234567890" class="form-input-sm">
-                  <button type="button" id="btnSendDanaOtp" class="btn-primary-sm">Kirim OTP</button>
-                </div>
-              </div>
-
-              <div id="danaOtpStep2" class="shopee-token-input-group" style="display:none; margin-top: 12px;">
-                <label for="danaOtpInput">Masukkan Kode OTP dari SMS/WA:</label>
-                <div class="input-with-button">
-                  <input type="text" id="danaOtpInput" placeholder="4 - 6 digit angka" maxlength="8" class="form-input-sm">
-                  <button type="button" id="btnVerifyDanaOtp" class="btn-success-sm">Verifikasi OTP</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Auto-Polling Checkbox for DANA -->
-            <div class="auto-poll-box" id="danaAutoPollBox" style="display:none; margin-top: 14px;">
-              <label class="toggle-container">
-                <input type="checkbox" id="cbDanaAutoPoll" checked>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                  <strong>Auto-Soundbox DANA Aktif</strong>
-                  <small>Mengecek mutasi DANA Bisnis setiap 4 detik & otomatis bersuara saat lunas</small>
-                </span>
-              </label>
-              <div class="poll-live-indicator">
-                <span class="pulse-dot"></span>
-                <span id="danaPollStatusText">Memantau transaksi DANA...</span>
-              </div>
-            </div>
-
-            <!-- DANA Tutorial Accordion -->
-            <details class="shopee-tutorial" style="margin-top: 14px;">
-              <summary>📖 <strong>Tutorial Cara Menghubungkan DANA Bisnis (Mudah)</strong></summary>
-              <div class="tutorial-content">
-                <p><strong>Opsi 1: Lewat Web Portal (business.dana.id)</strong></p>
-                <ol>
-                  <li>Buka website <a href="https://business.dana.id" target="_blank" class="shopee-link">business.dana.id ↗</a> di browser laptop Anda dan login.</li>
-                  <li>Tekan tombol <code>F12</code> &gt; pilih tab <strong>Network</strong>.</li>
-                  <li>Cari request ke <code>transactions</code> atau <code>dashboard</code>.</li>
-                  <li>Salin nilai header <code>Authorization: Bearer &lt;token&gt;</code> atau <code>Cookie</code>.</li>
-                  <li>Tempelkan ke kolom input di atas lalu klik <strong>Sambungkan DANA Bisnis</strong>!</li>
-                </ol>
-                <p style="margin-top:8px;"><strong>Opsi 2: Lewat Terminal CLI (1x Saja)</strong></p>
-                <p>Buka terminal di folder projek dan jalankan: <code>node tools/dana-api-gateway/login.js</code> lalu ikuti instruksi OTP.</p>
-              </div>
-            </details>
-          </div>
-        </div>
-
-        <!-- Shopee Partner API Gateway Integration Card -->
-        <div class="card shopee-card" id="shopeeGatewayCard" style="display:none;">
-          <div class="card-header">
-            <div class="header-with-badge">
-              <div class="shopee-badge-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <path d="M16 10a4 4 0 0 1-8 0"></path>
-                </svg>
-              </div>
-              <div>
-                <h3>Shopee Partner API Gateway</h3>
-                <p class="card-desc">Integrasi langsung akun merchant Shopee Partner (Otomatis Bunyi)</p>
-              </div>
-            </div>
-            <span id="shopeeStatusBadge" class="badge-pill badge-offline">Belum Terhubung</span>
-          </div>
-
-          <div class="shopee-body">
-            <div class="shopee-token-input-group">
-              <label for="shopeeTokenInput">SHOPEE_TOKEN Internal Akun Anda:</label>
-              <div class="token-input-wrapper">
-                <input type="password" id="shopeeTokenInput" placeholder="Tempel token B:xxxx... di sini" autocomplete="off" spellcheck="false">
-                <button type="button" id="btnToggleTokenVisibility" class="btn-icon" title="Lihat Token">👁️</button>
-              </div>
-              <p class="input-hint" id="tokenHintText">Token disimpan aman di browser Anda dan hanya digunakan untuk memeriksa mutasi pembayaran masuk.</p>
-            </div>
-
-            <div class="shopee-actions">
-              <button id="btnConnectShopee" class="btn-shopee">
-                <span id="connectBtnText">Sambungkan Akun Shopee</span>
-              </button>
-              <button id="btnDisconnectShopee" class="btn-danger-outline" style="display:none;">Putuskan</button>
-              <button id="btnCheckMutasi" class="btn-outline-sm" style="display:none;">Tarik Mutasi Sekarang 🔄</button>
-            </div>
-
-            <!-- Auto-Polling Checkbox -->
-            <div class="auto-poll-box" id="autoPollBox" style="display:none;">
-              <label class="toggle-container">
-                <input type="checkbox" id="cbAutoPoll" checked>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                  <strong>Auto-Soundbox Aktif (Real-Time Poller)</strong>
-                  <small>Mengecek mutasi Shopee setiap 4 detik & otomatis bersuara saat ada uang masuk</small>
-                </span>
-              </label>
-              <div class="poll-live-indicator" id="pollLiveIndicator">
-                <span class="pulse-dot"></span>
-                <span id="pollStatusText">Memantau transaksi...</span>
-              </div>
-            </div>
-
-            <!-- Shopee Tutorial Accordion -->
-            <details class="shopee-tutorial">
-              <summary>📖 <strong>Tutorial: Cara Mengambil SHOPEE_TOKEN (1 Menit)</strong></summary>
-              <div class="tutorial-content">
-                <ol>
-                  <li>Buka website <a href="https://partner.shopee.co.id" target="_blank" class="shopee-link">partner.shopee.co.id ↗</a> di browser laptop/komputer dan login.</li>
-                  <li>Tekan tombol <code>F12</code> pada keyboard (atau klik kanan &gt; <em>Inspeksi</em>), lalu pilih tab <strong>Network</strong>.</li>
-                  <li>Pada kolom pencarian filter Network, ketik: <code>get-transaction-list</code></li>
-                  <li>Buka menu <strong>Riwayat Transaksi</strong> di portal Shopee (atau refresh halaman).</li>
-                  <li>Klik nama request <code>get-transaction-list</code> &gt; pilih tab <strong>Payload</strong>.</li>
-                  <li>Buka bagian <code>data</code> &gt; <code>metadata</code> &gt; salin seluruh nilai <code>token</code> (panjang, diawali huruf <code>B:</code>).</li>
-                  <li>Tempelkan ke kolom input di atas lalu klik <strong>Sambungkan Akun Shopee</strong>!</li>
-                </ol>
-              </div>
-            </details>
-          </div>
-        </div>
-
-        <!-- Live Transaction Feed -->
+        <!-- Real-Time Transactions Feed -->
         <div class="card feed-card">
           <div class="card-header">
             <div>
-              <h3>Riwayat Transaksi Masuk (Real-Time)</h3>
-              <p class="card-desc">Pembayaran yang tertangkap otomatis dari webhook/notifikasi</p>
+              <h3>Riwayat Transaksi Real-Time</h3>
+              <p class="card-desc">Daftar transaksi uang masuk terverifikasi Grab</p>
             </div>
-            <button id="btnClearHistory" class="btn-ghost-sm">Bersihkan</button>
-          </div>
-          <div class="feed-list" id="transactionList">
-            <div class="empty-state" id="emptyState">
-              <div class="empty-icon">💸</div>
-              <p>Belum ada transaksi pembayaran masuk</p>
-              <span>Scan QRIS statis di sebelah kiri atau klik tombol simulasi</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tutorial & Setup Guide for Shopee / HP Notification -->
-        <div class="card guide-card">
-          <div class="card-header">
-            <div>
-              <h3>Alternatif: Hubungkan via Notifikasi HP (MacroDroid)</h3>
-              <p class="card-desc">Metode cadangan jika tidak ingin memakai token web</p>
-            </div>
+            <span class="badge-pill badge-live" id="liveBadge">LIVE FEED</span>
           </div>
 
-          <div class="guide-box">
-            <p class="guide-intro">
-              Karena QRIS Anda adalah <strong>QRIS Statis Shopee Merchant</strong>, ketika pembeli membayar, Shopee akan mengirim notifikasi ke HP Anda. Kita gunakan aplikasi penerus notifikasi gratis (MacroDroid) agar notifikasi tersebut otomatis diteruskan ke Web ini dalam <strong>0,5 detik</strong>!
-            </p>
-
-            <div class="endpoint-box">
-              <span class="endpoint-label">URL Webhook Penerima Soundbox Anda:</span>
-              <div class="code-copy-row">
-                <code id="webhookUrlText">https://qripay.vercel.app/api/webhook</code>
-                <button id="btnCopyWebhook" class="btn-copy">Salin URL</button>
-              </div>
-            </div>
-
-            <h4 class="steps-title">Langkah Setup 2 Menit di HP Anda:</h4>
-            <ol class="step-list">
-              <li>
-                <strong>Install MacroDroid</strong> dari Google Play Store (Gratis) pada HP yang ada aplikasi <em>Shopee Partner</em>.
-              </li>
-              <li>
-                <strong>Buat Macro Baru:</strong>
-                <ul>
-                  <li><strong>Trigger:</strong> Pilih <em>Device Events</em> &gt; <em>Notification Received</em> &gt; Pilih aplikasi <strong>Shopee Partner</strong> (atau DANA).</li>
-                  <li><strong>Action:</strong> Pilih <em>Connectivity</em> &gt; <em>HTTP Request</em>:
-                    <br>• Method: <strong>POST</strong>
-                    <br>• URL: Masukkan URL Webhook di atas.
-                    <br>• Content Type: <code>application/json</code>
-                    <br>• Body Content: <code>{"text": "{notif_body}"}</code>
-                  </li>
-                </ul>
-              </li>
-              <li>
-                <strong>Selesai!</strong> Sekarang setiap kali ada pembeli scan QRIS statis Anda, HP menerima notifikasi Shopee &gt; diteruskan ke Web ini &gt; <strong>Web Soundbox langsung berbicara lantang: <em>"Pembayaran QRIS sebesar ... rupiah berhasil diterima!"</em></strong>
-              </li>
-            </ol>
-            
-            <div class="direct-test-box">
-              <span>Ingin tes manual dari browser tanpa HP?</span>
-              <a id="directTestLink" href="/api/webhook?amount=20000&payer=BCA" target="_blank" class="btn-link">Buka Link Tes Bayar Rp 20.000 ↗</a>
+          <div class="feed-list" id="transactionFeed">
+            <div class="empty-state" id="emptyFeedState">
+              <span class="empty-icon">⏳</span>
+              <p>Belum ada transaksi baru terdeteksi.<br><small>Begitu ada yang membayar via QRIS, suara akan berbunyi dan transaksi muncul di sini.</small></p>
             </div>
           </div>
         </div>
 
       </section>
     </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>QriPay Soundbox • GrabMerchant Official Gateway Integration</p>
+    </footer>
   </div>
 
-  <script src="app.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>
