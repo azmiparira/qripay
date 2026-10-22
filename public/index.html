@@ -271,25 +271,85 @@
         
         <!-- Gateway Switcher Bar -->
         <div class="gateway-switch-bar">
-          <button type="button" id="tabGatewayDana" class="gateway-btn active">
+          <button type="button" id="tabGatewayGrab" class="gateway-btn active">
+            <span class="gw-logo">🟢</span>
+            <div class="gw-text">
+              <strong>GrabMerchant Gateway</strong>
+              <small>Auto-Detect QRIS & OVO (Aktif)</small>
+            </div>
+            <span class="gw-badge-grab">Online</span>
+          </button>
+          <button type="button" id="tabGatewayDana" class="gateway-btn">
             <span class="gw-logo">💳</span>
             <div class="gw-text">
-              <strong>DANA Bisnis Gateway</strong>
-              <small>Auto-Detect & Custom QRIS</small>
+              <strong>DANA Bisnis</strong>
+              <small>Forwarder Notif</small>
             </div>
-            <span class="gw-badge-active">Direkomendasikan</span>
           </button>
           <button type="button" id="tabGatewayShopee" class="gateway-btn">
             <span class="gw-logo">🛒</span>
             <div class="gw-text">
               <strong>Shopee Partner</strong>
-              <small>Shopee Merchant Poller</small>
+              <small>Shopee Poller</small>
             </div>
           </button>
         </div>
 
+        <!-- GrabMerchant Gateway Card -->
+        <div class="card grab-card" id="grabGatewayCard">
+          <div class="card-header">
+            <div class="header-with-badge">
+              <div class="grab-badge-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                  <path d="M2 17l10 5 10-5"></path>
+                  <path d="M2 12l10 5 10-5"></path>
+                </svg>
+              </div>
+              <div>
+                <h3>GrabMerchant Portal Gateway</h3>
+                <p class="card-desc">Terkoneksi langsung ke API GrabMerchant (Otomatis Deteksi Saldo Masuk)</p>
+              </div>
+            </div>
+            <span id="grabStatusBadge" class="badge-pill badge-live">🟢 Terhubung</span>
+          </div>
+
+          <div class="grab-body" style="padding: 16px;">
+            <div class="merchant-info-box" style="background: rgba(0, 177, 79, 0.08); border: 1px solid rgba(0, 177, 79, 0.25); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Toko Grab Terhubung</span>
+                <span style="font-size: 11px; background: rgba(0, 177, 79, 0.2); color: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Jus Smoothies Cipadung</span>
+              </div>
+              <strong id="grabStoreName" style="display: block; font-size: 14px; color: #fff;">Jus Smoothies - Janji Jawa - AZMI ADI PARIRA</strong>
+              <small id="grabStoreId" style="display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px;">Store ID: 03555c6f-2c66-466d-8c26-a404adbc8ebb</small>
+            </div>
+
+            <!-- Auto-Polling Checkbox for Grab -->
+            <div class="auto-poll-box" id="grabAutoPollBox" style="margin-top: 0; margin-bottom: 14px;">
+              <label class="toggle-container">
+                <input type="checkbox" id="cbGrabAutoPoll" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">
+                  <strong>Auto-Soundbox GrabMerchant Aktif</strong>
+                  <small>Mengecek mutasi QRIS Grab setiap 4 detik & otomatis bersuara saat lunas</small>
+                </span>
+              </label>
+              <div class="poll-live-indicator">
+                <span class="pulse-dot"></span>
+                <span id="grabPollStatusText">Memantau transaksi QRIS Grab...</span>
+              </div>
+            </div>
+
+            <div class="shopee-actions">
+              <button id="btnCheckGrabMutasi" class="btn-grab">
+                <span>Tarik Mutasi Grab Sekarang 🔄</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- DANA Bisnis Merchant Gateway Card (yono99/dana-api-gateway) -->
-        <div class="card dana-card" id="danaGatewayCard">
+        <div class="card dana-card" id="danaGatewayCard" style="display:none;">
           <div class="card-header">
             <div class="header-with-badge">
               <div class="dana-badge-icon">

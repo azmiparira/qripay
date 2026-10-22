@@ -5,6 +5,7 @@ const path = require('path');
 const axios = require('axios');
 const crypto = require('crypto');
 const danaSessionManager = require('./danaSessionManager');
+const grabSessionManager = require('./grabSessionManager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // Config from env
 let shopeeToken = process.env.SHOPEE_TOKEN || '';
 const apiKey = process.env.API_KEY || '';
-const qrisStaticTemplate = process.env.QRIS_STATIC || '00020101021126570011ID.DANA.WWW011893600915351010223202095101022320303UMI51440014ID.CO.QRIS.WWW0215ID10232917905590303UMI5204481453033605802ID5909Azmi+Shop6013Kab.+Sukabumi6105433536304CA17';
+const qrisStaticTemplate = process.env.QRIS_STATIC || '00020101021126580006id.ovo01189360091200028632020215yS8XQqMtdJFOgbp0303UKE51450015ID.OR.GPNQR.WWW0215ID10254332070950303UKE5204581253033605802ID5905BAKSO6007Bandung61054061462310507mdA5CZx07162ETGA0xIKAXiD4br63044093';
 
 // In-Memory Buffers
 const transactions = [];
@@ -23,6 +24,9 @@ const MAX_LOGS = 100;
 const qrisStore = new Map();
 const usedTransactionIds = new Map();
 const knownShopeeTxIds = new Set();
+const knownGrabTxIds = new Set();
+let isInitialGrabSync = true;
+let lastGrabCheckTime = null;
 
 let isInitialShopeeSync = true;
 let lastShopeeCheckTime = null;
@@ -921,6 +925,138 @@ app.get('/api/dana/transactions', async (req, res) => {
     const rawList = danaSessionManager.extractRawTransactions(response.data);
     const normalized = danaSessionManager.normalizeTransactions(rawList);
 
+    res.json({
+      success: true,
+      total_count: normalized.length,
+      data: { transactions: normalized }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==============================================================================
+// 2.5 GRABMERCHANT GATEWAY ENDPOINTS
+// ==============================================================================
+
+app.get('/api/grab/status', (req, res) => {
+  const session = grabSessionManager.loadSession();
+  const isConnected = !!(session && session.cookie);
+  res.json({
+    success: true,
+    connected: isConnected,
+    storeName: session?.store_name || 'Jus Smoothies - Janji Jawa',
+    storeId: session?.store_id || '03555c6f-2c66-466d-8c26-a404adbc8ebb',
+    merchantGroupId: session?.merchant_group_id || 'IDMG20250905033145011397',
+    city: session?.city || 'Bandung',
+    expiresAt: session?.expires_at || null,
+    lastChecked: lastGrabCheckTime,
+    knownTransactionsCount: knownGrabTxIds.size
+  });
+});
+
+app.post('/api/grab/connect', (req, res) => {
+  const { cookie, merchantGroupId, storeId, grabId } = req.body;
+  if (!cookie) {
+    return res.status(400).json({ success: false, message: 'Cookie GrabMerchant wajib diisi!' });
+  }
+
+  const session = grabSessionManager.saveSession({
+    cookie: cookie.trim(),
+    merchant_group_id: merchantGroupId ? merchantGroupId.trim() : undefined,
+    store_id: storeId ? storeId.trim() : undefined,
+    grab_id: grabId ? grabId.trim() : undefined
+  });
+
+  isInitialGrabSync = true;
+  lastGrabCheckTime = new Date().toISOString();
+  logEvent('INFO', `✅ GrabMerchant connected! Store: ${session.store_name}`);
+
+  res.json({
+    success: true,
+    message: 'Koneksi GrabMerchant berhasil disimpan!',
+    session: {
+      storeName: session.store_name,
+      storeId: session.store_id,
+      expiresAt: session.expires_at
+    }
+  });
+});
+
+app.post('/api/grab/disconnect', (req, res) => {
+  grabSessionManager.clearSession();
+  knownGrabTxIds.clear();
+  isInitialGrabSync = true;
+  logEvent('INFO', 'GrabMerchant disconnected.');
+  res.json({ success: true, message: 'Koneksi GrabMerchant telah diputuskan.' });
+});
+
+app.get('/api/grab/poll-transactions', async (req, res) => {
+  const session = grabSessionManager.loadSession();
+  if (!session || !session.cookie) {
+    return res.json({ success: false, connected: false, message: 'GrabMerchant belum terhubung' });
+  }
+
+  try {
+    const apiData = await grabSessionManager.fetchTransactions({ limit: 20 });
+    lastGrabCheckTime = new Date().toISOString();
+
+    const normalized = grabSessionManager.normalizeTransactions(apiData);
+
+    if (isInitialGrabSync) {
+      normalized.forEach(tx => {
+        if (tx.id) knownGrabTxIds.add(tx.id);
+      });
+      isInitialGrabSync = false;
+      return res.json({
+        success: true,
+        connected: true,
+        hasNew: false,
+        initialSync: true,
+        totalChecked: normalized.length
+      });
+    }
+
+    const newPayments = [];
+    for (const tx of normalized) {
+      if (!tx.id) continue;
+
+      if ((tx.status === 'completed' || tx.status === 'success') && !knownGrabTxIds.has(tx.id)) {
+        knownGrabTxIds.add(tx.id);
+
+        const storeId = req.query.storeId || 'pempek';
+        const storeName = req.query.storeName || 'Pempek Bandung';
+
+        const broadcasted = recordAndBroadcast({
+          transactionId: tx.id,
+          storeId,
+          storeName,
+          amount: tx.amount,
+          payer: 'GrabPay / OVO QRIS',
+          source: 'GrabMerchant Gateway',
+          rawText: `Grab QRIS: Rp ${tx.amount.toLocaleString('id-ID')} (${tx.store_name})`
+        });
+
+        newPayments.push(broadcasted);
+      }
+    }
+
+    res.json({
+      success: true,
+      connected: true,
+      hasNew: newPayments.length > 0,
+      newPayments,
+      totalChecked: normalized.length
+    });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/grab/transactions', async (req, res) => {
+  try {
+    const apiData = await grabSessionManager.fetchTransactions({ limit: 30 });
+    const normalized = grabSessionManager.normalizeTransactions(apiData);
     res.json({
       success: true,
       total_count: normalized.length,

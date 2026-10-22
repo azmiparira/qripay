@@ -761,13 +761,131 @@ if ('speechSynthesis' in window) {
 }
 
 // ==============================================================================
-// 10. DANA BISNIS GATEWAY CONTROLLER (yono99/dana-api-gateway integration)
+// 10. GRABMERCHANT & MULTI-GATEWAY CONTROLLERS
 // ==============================================================================
 
+const tabGatewayGrab = document.getElementById('tabGatewayGrab');
 const tabGatewayDana = document.getElementById('tabGatewayDana');
 const tabGatewayShopee = document.getElementById('tabGatewayShopee');
+const grabGatewayCard = document.getElementById('grabGatewayCard');
 const danaGatewayCard = document.getElementById('danaGatewayCard');
 const shopeeGatewayCard = document.getElementById('shopeeGatewayCard');
+
+const grabStatusBadge = document.getElementById('grabStatusBadge');
+const grabStoreName = document.getElementById('grabStoreName');
+const grabStoreId = document.getElementById('grabStoreId');
+const cbGrabAutoPoll = document.getElementById('cbGrabAutoPoll');
+const grabPollStatusText = document.getElementById('grabPollStatusText');
+const btnCheckGrabMutasi = document.getElementById('btnCheckGrabMutasi');
+
+let grabPollTimer = null;
+
+// Three-Way Gateway Switcher
+function selectGatewayTab(activeTab) {
+  [tabGatewayGrab, tabGatewayDana, tabGatewayShopee].forEach(t => t && t.classList.remove('active'));
+  [grabGatewayCard, danaGatewayCard, shopeeGatewayCard].forEach(c => c && (c.style.display = 'none'));
+
+  if (activeTab === 'grab') {
+    if (tabGatewayGrab) tabGatewayGrab.classList.add('active');
+    if (grabGatewayCard) grabGatewayCard.style.display = 'block';
+  } else if (activeTab === 'dana') {
+    if (tabGatewayDana) tabGatewayDana.classList.add('active');
+    if (danaGatewayCard) danaGatewayCard.style.display = 'block';
+  } else if (activeTab === 'shopee') {
+    if (tabGatewayShopee) tabGatewayShopee.classList.add('active');
+    if (shopeeGatewayCard) shopeeGatewayCard.style.display = 'block';
+  }
+}
+
+if (tabGatewayGrab) tabGatewayGrab.addEventListener('click', () => selectGatewayTab('grab'));
+if (tabGatewayDana) tabGatewayDana.addEventListener('click', () => selectGatewayTab('dana'));
+if (tabGatewayShopee) tabGatewayShopee.addEventListener('click', () => selectGatewayTab('shopee'));
+
+async function checkGrabStatus() {
+  try {
+    const res = await fetch('/api/grab/status');
+    const data = await res.json();
+    if (data.success && data.connected) {
+      if (grabStatusBadge) grabStatusBadge.textContent = '🟢 Terhubung (Online)';
+      if (grabStoreName) grabStoreName.textContent = data.storeName;
+      if (grabStoreId) grabStoreId.textContent = `Store ID: ${data.storeId} • ${data.city}`;
+      startGrabPolling();
+    }
+  } catch (e) {}
+}
+
+async function startGrabPolling() {
+  if (grabPollTimer) clearTimeout(grabPollTimer);
+
+  async function poll() {
+    if (!cbGrabAutoPoll || !cbGrabAutoPoll.checked) {
+      grabPollTimer = setTimeout(poll, 4000);
+      return;
+    }
+
+    try {
+      const currentStore = currentActiveStore === 'all' ? 'pempek' : currentActiveStore;
+      const currentStoreName = STORES[currentStore]?.name || 'Pempek Bandung';
+
+      const res = await fetch(`/api/grab/poll-transactions?storeId=${currentStore}&storeName=${encodeURIComponent(currentStoreName)}`);
+      const data = await res.json();
+
+      if (data.success && data.newPayments && data.newPayments.length > 0) {
+        data.newPayments.forEach(p => {
+          handlePaymentEvent(p);
+        });
+      }
+
+      if (grabPollStatusText) {
+        const timeStr = new Date().toLocaleTimeString('id-ID');
+        grabPollStatusText.textContent = `Aktif • Terakhir dicek: ${timeStr} (${data.totalChecked || 0} mutasi Grab)`;
+      }
+    } catch (err) {
+      if (grabPollStatusText) grabPollStatusText.textContent = 'Menghubungkan ke Grab...';
+    } finally {
+      grabPollTimer = setTimeout(poll, 4000);
+    }
+  }
+
+  poll();
+}
+
+if (btnCheckGrabMutasi) {
+  btnCheckGrabMutasi.addEventListener('click', async () => {
+    btnCheckGrabMutasi.disabled = true;
+    btnCheckGrabMutasi.textContent = 'Menarik data Grab...';
+    try {
+      const res = await fetch('/api/grab/transactions');
+      const data = await res.json();
+      if (data.success && data.data?.transactions) {
+        const list = data.data.transactions;
+        alert(`✅ Berhasil menarik ${list.length} transaksi GrabMerchant terbaru!`);
+        const currentStore = currentActiveStore === 'all' ? 'pempek' : currentActiveStore;
+        list.slice(0, 5).forEach(tx => {
+          addTransactionToFeed({
+            amount: tx.amount,
+            storeId: currentStore,
+            storeName: STORES[currentStore]?.name || 'Pempek Bandung',
+            payer: 'GrabPay / OVO QRIS',
+            source: 'GrabMerchant (Mutasi)',
+            timestamp: tx.created_at || new Date().toISOString()
+          });
+        });
+      } else {
+        alert('Gagal mengambil data transaksi Grab.');
+      }
+    } catch (e) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      btnCheckGrabMutasi.disabled = false;
+      btnCheckGrabMutasi.textContent = 'Tarik Mutasi Grab Sekarang 🔄';
+    }
+  });
+}
+
+// ==============================================================================
+// 10.5 DANA BISNIS GATEWAY CONTROLLER (yono99/dana-api-gateway integration)
+// ==============================================================================
 
 const btnDanaTabToken = document.getElementById('btnDanaTabToken');
 const btnDanaTabOtp = document.getElementById('btnDanaTabOtp');
@@ -796,23 +914,6 @@ let isDanaConnected = false;
 let danaPollTimer = null;
 let currentOtpToken = null;
 let currentDeviceId = null;
-
-// Gateway Switcher
-if (tabGatewayDana && tabGatewayShopee) {
-  tabGatewayDana.addEventListener('click', () => {
-    tabGatewayDana.classList.add('active');
-    tabGatewayShopee.classList.remove('active');
-    if (danaGatewayCard) danaGatewayCard.style.display = 'block';
-    if (shopeeGatewayCard) shopeeGatewayCard.style.display = 'none';
-  });
-
-  tabGatewayShopee.addEventListener('click', () => {
-    tabGatewayShopee.classList.add('active');
-    tabGatewayDana.classList.remove('active');
-    if (shopeeGatewayCard) shopeeGatewayCard.style.display = 'block';
-    if (danaGatewayCard) danaGatewayCard.style.display = 'none';
-  });
-}
 
 // DANA Tabs: Token vs OTP
 if (btnDanaTabToken && btnDanaTabOtp) {
@@ -1067,5 +1168,6 @@ if (btnConnectDana) btnConnectDana.addEventListener('click', connectDanaManual);
 if (btnDisconnectDana) btnDisconnectDana.addEventListener('click', disconnectDana);
 if (btnCheckDanaMutasi) btnCheckDanaMutasi.addEventListener('click', checkDanaMutasi);
 
-// Initial check
+// Initial checks
+checkGrabStatus();
 checkDanaStatus();

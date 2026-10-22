@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "node server.js",
     "custom-qris": "node tools/qris-customizer/qris-customizer.js"
   },
   "dependencies": {
