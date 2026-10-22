@@ -1,10 +1,10 @@
 /**
- * QriPay Soundbox — GrabMerchant Gateway Frontend Engine
- * Real-Time Poller, Audio Synthesis, and Hardware Animations
+ * QriPay Soundbox — GrabMerchant Official Gateway Engine
+ * Features: High-Reliability Audio Queue, Chrome GC Protection, Live Polling
  */
 
 // ==============================================================================
-// 1. STORE REGISTRY & STATE
+// 1. STORE REGISTRY
 // ==============================================================================
 
 const STORES = {
@@ -12,107 +12,105 @@ const STORES = {
     id: 'pempek',
     name: 'Pempek Bandung',
     emoji: '🥘',
-    city: 'Outlet Resmi • Kota Bandung (NMID: ID1025433207095)',
     qrisImg: '/qris_pempekbandung.png',
-    qrisTitle: 'Poster QRIS Resmi Pempek Bandung',
-    qrisMerchant: 'PEMPEK BANDUNG',
+    qrisTitle: 'QRIS Pempek Bandung',
+    qrisStoreName: 'PEMPEK BANDUNG',
     downloadName: 'QRIS_Pempek_Bandung.png'
   },
   batagor: {
     id: 'batagor',
     name: 'Batagor Bandung',
     emoji: '🥟',
-    city: 'Outlet Resmi • Kota Bandung (NMID: ID1025433207095)',
     qrisImg: '/qris_batagorbandung.png',
-    qrisTitle: 'Poster QRIS Resmi Batagor Bandung',
-    qrisMerchant: 'BATAGOR BANDUNG',
+    qrisTitle: 'QRIS Batagor Bandung',
+    qrisStoreName: 'BATAGOR BANDUNG',
     downloadName: 'QRIS_Batagor_Bandung.png'
   },
   soto: {
     id: 'soto',
     name: 'Soto Lamongan',
     emoji: '🍲',
-    city: 'Outlet Resmi • Kota Bandung (NMID: ID1025433207095)',
     qrisImg: '/qris_sotolamongan.png',
-    qrisTitle: 'Poster QRIS Resmi Soto Lamongan',
-    qrisMerchant: 'SOTO LAMONGAN',
+    qrisTitle: 'QRIS Soto Lamongan',
+    qrisStoreName: 'SOTO LAMONGAN',
     downloadName: 'QRIS_Soto_Lamongan.png'
   },
   pusat: {
     id: 'pusat',
     name: 'Jus Smoothies Cipadung',
     emoji: '🍹',
-    city: 'Janji Jawa (Pusat) • Master Grab (NMID: ID1025433207095)',
     qrisImg: '/qris_pempekbandung.png',
-    qrisTitle: 'Poster Master QRIS Grab (Janji Jawa)',
-    qrisMerchant: 'BAKSO / JUS SMOOTHIES',
+    qrisTitle: 'Master QRIS Grab (Janji Jawa)',
+    qrisStoreName: 'BAKSO / JUS SMOOTHIES',
     downloadName: 'QRIS_Master_Grab.png'
   }
 };
 
-let currentActiveStore = 'pempek';
+let currentStoreKey = 'pempek';
 let audioUnlocked = false;
 let isInitialSyncDone = false;
-const knownTxIds = new Set();
-const spokenTxIds = new Set();
-const speechQueue = [];
-let isSpeechBusy = false;
+
+// Transaction tracking (persisted in localStorage to prevent repeat announcements)
+const STORAGE_KEY = 'qripay_announced_grab_tx_ids';
+let announcedTxIds = new Set();
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) announcedTxIds = new Set(JSON.parse(saved));
+} catch (e) {}
+
+function saveAnnouncedTxIds() {
+  try {
+    const arr = Array.from(announcedTxIds).slice(-200); // keep last 200 IDs
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  } catch (e) {}
+}
 
 // ==============================================================================
 // 2. DOM ELEMENTS
 // ==============================================================================
 
-const branchTabs = document.getElementById('branchTabs');
-const singleSoundboxView = document.getElementById('singleSoundboxView');
-const multiSoundboxView = document.getElementById('multiSoundboxView');
+const btnAudioToggle = document.getElementById('btnAudioToggle');
+const audioStatusLabel = document.getElementById('audioStatusLabel');
+const voicePreset = document.getElementById('voicePreset');
+const btnTestAudio = document.getElementById('btnTestAudio');
 
-const storeBadgeIcon = document.getElementById('storeBadgeIcon');
-const storeBadgeName = document.getElementById('storeBadgeName');
-const storeBadgeCity = document.getElementById('storeBadgeCity');
-const ledStoreTag = document.getElementById('ledStoreTag');
-const displayAmount = document.getElementById('displayAmount');
-const displayInfo = document.getElementById('displayInfo');
+const screenStoreLabel = document.getElementById('screenStoreLabel');
+const screenAmount = document.getElementById('screenAmount');
+const screenStatus = document.getElementById('screenStatus');
 const speakerGrill = document.getElementById('speakerGrill');
 
-const qrisCardTitle = document.getElementById('qrisCardTitle');
-const qrisImage = document.getElementById('qrisImage');
-const qrisMerchantName = document.getElementById('qrisMerchantName');
-const btnDownloadQR = document.getElementById('btnDownloadQR');
-const btnQuickTest = document.getElementById('btnQuickTest');
+const qrisTitle = document.getElementById('qrisTitle');
+const activeQrisImage = document.getElementById('activeQrisImage');
+const qrisStoreName = document.getElementById('qrisStoreName');
+const btnDownloadQris = document.getElementById('btnDownloadQris');
 
-const btnUnlockAudio = document.getElementById('btnUnlockAudio');
-const audioBtnText = document.getElementById('audioBtnText');
-const voiceSelect = document.getElementById('voiceSelect');
-const btnTestVoice = document.getElementById('btnTestVoice');
-const btnHeaderSimulate = document.getElementById('btnHeaderSimulate');
-
-const grabStatusBadge = document.getElementById('grabStatusBadge');
-const grabStoreName = document.getElementById('grabStoreName');
-const grabStoreId = document.getElementById('grabStoreId');
-const cbGrabAutoPoll = document.getElementById('cbGrabAutoPoll');
-const grabPollStatusText = document.getElementById('grabPollStatusText');
-const btnCheckGrabMutasi = document.getElementById('btnCheckGrabMutasi');
-const transactionFeed = document.getElementById('transactionFeed');
-const emptyFeedState = document.getElementById('emptyFeedState');
+const feedList = document.getElementById('feedList');
+const feedSubtitle = document.getElementById('feedSubtitle');
+const btnManualRefresh = document.getElementById('btnManualRefresh');
 
 // ==============================================================================
-// 3. AUDIO SYNTHESIS & SPEECH ENGINE
+// 3. AUDIO ENGINE & SPEECH SYNTHESIS (GC-Protected)
 // ==============================================================================
 
-function playChimeBell() {
+// Global references to prevent Chrome Garbage Collector from clipping audio
+window._activeSpeechUtterance = null;
+let speechQueue = [];
+let isSpeakingNow = false;
+
+function playChime() {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
 
-    function playNote(freq, start, duration) {
+    function tone(freq, start, duration) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, start);
 
       gain.gain.setValueAtTime(0.001, start);
-      gain.gain.exponentialRampToValueAtTime(0.3, start + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.25, start + 0.04);
       gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
       osc.connect(gain);
@@ -122,8 +120,8 @@ function playChimeBell() {
     }
 
     const t = ctx.currentTime;
-    playNote(587.33, t, 0.25);       // D5
-    playNote(880.00, t + 0.12, 0.4); // A5
+    tone(587.33, t, 0.22);        // D5
+    tone(880.00, t + 0.12, 0.38); // A5
   } catch (e) {}
 }
 
@@ -144,8 +142,13 @@ function angkaKeTeks(n) {
   return n.toLocaleString('id-ID');
 }
 
+/**
+ * Exact speech wording requested:
+ * "nominal + diterima + di + nama perusahaan"
+ * Contoh: "Sepuluh rupiah diterima di Pempek Bandung"
+ */
 function speakAnnouncement(amount, storeName, callback) {
-  playChimeBell();
+  playChime();
 
   setTimeout(() => {
     if (!('speechSynthesis' in window)) {
@@ -153,343 +156,253 @@ function speakAnnouncement(amount, storeName, callback) {
       return;
     }
 
-    window.speechSynthesis.cancel();
-
-    const terbilang = angkaKeTeks(amount);
-    const storeLabel = storeName ? `${storeName}, ` : '';
-    const kalimat = `Pembayaran QRIS untuk ${storeLabel}sebesar ${terbilang} rupiah, berhasil diterima.`;
+    const nominalTeks = angkaKeTeks(amount);
+    const kalimat = `${nominalTeks} rupiah diterima di ${storeName}`;
 
     const utter = new SpeechSynthesisUtterance(kalimat);
+    window._activeSpeechUtterance = utter; // CRITICAL: Kept in window scope so V8 never GCs it mid-speech!
+
     utter.lang = 'id-ID';
 
-    const profile = voiceSelect ? voiceSelect.value : 'natural_female';
-    if (profile === 'cheerful_female') {
-      utter.rate = 0.98;
-      utter.pitch = 1.12;
-    } else if (profile === 'gentle_male') {
-      utter.rate = 0.90;
-      utter.pitch = 0.92;
-    } else {
+    const preset = voicePreset ? voicePreset.value : 'natural';
+    if (preset === 'cheerful') {
+      utter.rate = 1.0;
+      utter.pitch = 1.15;
+    } else if (preset === 'male') {
       utter.rate = 0.92;
-      utter.pitch = 1.04;
+      utter.pitch = 0.90;
+    } else {
+      // Natural Female (Default)
+      utter.rate = 0.94;
+      utter.pitch = 1.05;
     }
 
-    utter.onend = () => { if (callback) callback(); };
-    utter.onerror = () => { if (callback) callback(); };
+    // Set Indonesian voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const idVoice = voices.find(v => v.lang === 'id-ID' || v.lang.startsWith('id'));
+    if (idVoice) utter.voice = idVoice;
+
+    utter.onend = () => {
+      window._activeSpeechUtterance = null;
+      if (callback) callback();
+    };
+
+    utter.onerror = () => {
+      window._activeSpeechUtterance = null;
+      if (callback) callback();
+    };
 
     window.speechSynthesis.speak(utter);
-  }, 350);
+  }, 300);
 }
 
 function processSpeechQueue() {
-  if (isSpeechBusy || speechQueue.length === 0) return;
-  isSpeechBusy = true;
+  if (isSpeakingNow || speechQueue.length === 0) return;
+  isSpeakingNow = true;
 
   const item = speechQueue.shift();
-  triggerSoundboxAnimation(item.storeId);
+
+  // Trigger hardware animations
+  if (speakerGrill) speakerGrill.classList.add('active');
+  updateDisplay(item.amount, item.storeName);
 
   speakAnnouncement(item.amount, item.storeName, () => {
-    isSpeechBusy = false;
-    stopSoundboxAnimation(item.storeId);
-    setTimeout(processSpeechQueue, 300);
+    isSpeakingNow = false;
+    if (speakerGrill) speakerGrill.classList.remove('active');
+    setTimeout(processSpeechQueue, 350);
   });
 }
 
-function queueAnnouncement(tx) {
-  const uniqueKey = String(tx.transactionId || tx.id);
-  if (spokenTxIds.has(uniqueKey)) return;
-  spokenTxIds.add(uniqueKey);
-
-  speechQueue.push({
-    storeId: tx.storeId || 'pempek',
-    storeName: tx.storeName || STORES[tx.storeId]?.name || 'Pempek Bandung',
-    amount: tx.amount
-  });
-
+function queueSpeech(amount, storeName) {
+  speechQueue.push({ amount, storeName });
   processSpeechQueue();
 }
 
 // ==============================================================================
-// 4. ANIMATIONS & UI UPDATES
+// 4. DISPLAY & HARDWARE LED UPDATES
 // ==============================================================================
 
-function triggerSoundboxAnimation(storeId) {
-  if (speakerGrill) speakerGrill.classList.add('active');
-  const miniBox = document.getElementById(`miniBox${capitalize(storeId)}`);
-  if (miniBox) miniBox.classList.add('active-pulse');
-}
-
-function stopSoundboxAnimation(storeId) {
-  if (speakerGrill) speakerGrill.classList.remove('active');
-  const miniBox = document.getElementById(`miniBox${capitalize(storeId)}`);
-  if (miniBox) miniBox.classList.remove('active-pulse');
-}
-
-function capitalize(s) {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
-}
-
-function updateSoundboxLED(amount, storeId, storeName) {
+function updateDisplay(amount, storeName) {
   const formatted = `Rp ${Number(amount).toLocaleString('id-ID')}`;
-  if (displayAmount) displayAmount.textContent = formatted;
-  if (displayInfo) displayInfo.textContent = `Pembayaran QRIS ${storeName} Berhasil!`;
-  if (ledStoreTag) ledStoreTag.textContent = `KASIR ${storeName.toUpperCase()}`;
-
-  const miniAmount = document.getElementById(`miniAmount${capitalize(storeId)}`);
-  const miniInfo = document.getElementById(`miniInfo${capitalize(storeId)}`);
-  if (miniAmount) miniAmount.textContent = formatted;
-  if (miniInfo) miniInfo.textContent = 'Lunas via QRIS Grab';
+  if (screenAmount) screenAmount.textContent = formatted;
+  if (screenStatus) screenStatus.textContent = `Pembayaran Berhasil • ${storeName}`;
+  if (screenStoreLabel) screenStoreLabel.textContent = storeName.toUpperCase();
 
   setTimeout(() => {
-    if (displayAmount && displayAmount.textContent === formatted) {
-      displayAmount.textContent = 'STANDBY';
-      displayInfo.textContent = 'Menunggu pembayaran QRIS dari pembeli...';
+    if (screenAmount && screenAmount.textContent === formatted) {
+      screenAmount.textContent = 'STANDBY';
+      screenStatus.textContent = 'Siap menerima pembayaran QRIS';
+      const s = STORES[currentStoreKey] || STORES.pempek;
+      screenStoreLabel.textContent = s.name.toUpperCase();
     }
-  }, 12000);
+  }, 10000);
 }
 
-function addTransactionToFeed(tx) {
-  if (emptyFeedState) emptyFeedState.style.display = 'none';
+function addFeedRow(item, isNew = false) {
+  const existing = document.getElementById(`tx-${item.id}`);
+  if (existing) return;
 
   const row = document.createElement('div');
   row.className = 'feed-item';
-  const time = tx.timestamp ? new Date(tx.timestamp).toLocaleTimeString('id-ID') : new Date().toLocaleTimeString('id-ID');
+  row.id = `tx-${item.id}`;
+
+  const timeStr = item.created_at ? new Date(item.created_at).toLocaleTimeString('id-ID') : new Date().toLocaleTimeString('id-ID');
 
   row.innerHTML = `
     <div class="feed-item-left">
       <div class="feed-icon">🟢</div>
       <div class="feed-info">
-        <strong>${tx.storeName || 'Pempek Bandung'}</strong>
-        <small>${tx.payer || 'GrabPay / OVO QRIS'} • ID: ${tx.transactionId || tx.id}</small>
+        <strong>${item.storeName || STORES[currentStoreKey]?.name || 'Pempek Bandung'}</strong>
+        <small>Trx ID: ${item.id} • ${item.type ? item.type.toUpperCase() : 'OVO'} QRIS</small>
       </div>
     </div>
     <div class="feed-item-right">
-      <span class="feed-amount">+Rp ${Number(tx.amount).toLocaleString('id-ID')}</span>
-      <span class="feed-time">${time}</span>
+      <span class="feed-amount">+Rp ${Number(item.amount).toLocaleString('id-ID')}</span>
+      <span class="feed-time">${timeStr}</span>
     </div>
   `;
 
-  if (transactionFeed) {
-    transactionFeed.insertBefore(row, transactionFeed.firstChild);
+  if (feedList) {
+    feedList.insertBefore(row, feedList.firstChild);
   }
 }
 
 // ==============================================================================
-// 5. STORE SWITCHING
+// 5. STORE SELECTION
 // ==============================================================================
 
-function selectStore(storeId) {
-  currentActiveStore = storeId;
+function selectStore(key) {
+  const s = STORES[key];
+  if (!s) return;
+  currentStoreKey = key;
 
-  document.querySelectorAll('.branch-tab').forEach(t => {
-    t.classList.toggle('active', t.getAttribute('data-store') === storeId);
+  document.querySelectorAll('.store-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.getAttribute('data-store') === key);
   });
 
-  if (storeId === 'all') {
-    if (singleSoundboxView) singleSoundboxView.style.display = 'none';
-    if (multiSoundboxView) multiSoundboxView.style.display = 'block';
-  } else {
-    if (singleSoundboxView) singleSoundboxView.style.display = 'block';
-    if (multiSoundboxView) multiSoundboxView.style.display = 'none';
-
-    const s = STORES[storeId] || STORES.pempek;
-    if (storeBadgeIcon) storeBadgeIcon.textContent = s.emoji;
-    if (storeBadgeName) storeBadgeName.textContent = s.name;
-    if (storeBadgeCity) storeBadgeCity.textContent = s.city;
-    if (ledStoreTag) ledStoreTag.textContent = `KASIR ${s.name.toUpperCase()}`;
-
-    if (qrisCardTitle) qrisCardTitle.textContent = s.qrisTitle;
-    if (qrisImage) qrisImage.src = s.qrisImg;
-    if (qrisMerchantName) qrisMerchantName.textContent = s.qrisMerchant;
-    if (btnDownloadQR) {
-      btnDownloadQR.href = s.qrisImg;
-      btnDownloadQR.setAttribute('download', s.downloadName);
-    }
+  if (screenStoreLabel) screenStoreLabel.textContent = s.name.toUpperCase();
+  if (qrisTitle) qrisTitle.textContent = s.qrisTitle;
+  if (activeQrisImage) activeQrisImage.src = s.qrisImg;
+  if (qrisStoreName) qrisStoreName.textContent = s.qrisStoreName;
+  if (btnDownloadQris) {
+    btnDownloadQris.href = s.qrisImg;
+    btnDownloadQris.setAttribute('download', s.downloadName);
   }
 }
 
-if (branchTabs) {
-  branchTabs.addEventListener('click', (e) => {
-    const btn = e.target.closest('.branch-tab');
-    if (!btn) return;
-    const storeId = btn.getAttribute('data-store');
-    if (storeId) selectStore(storeId);
+document.querySelectorAll('.store-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const key = tab.getAttribute('data-store');
+    if (key) selectStore(key);
   });
-}
+});
 
 // ==============================================================================
-// 6. AUDIO UNLOCK HANDLERS (Permanent on user touch/click)
+// 6. AUDIO UNLOCK & TEST BUTTONS
 // ==============================================================================
 
 function unlockAudio() {
   if (audioUnlocked) return;
   audioUnlocked = true;
 
-  playChimeBell();
+  playChime();
   if ('speechSynthesis' in window) {
-    const silent = new SpeechSynthesisUtterance('');
-    window.speechSynthesis.speak(silent);
+    const s = new SpeechSynthesisUtterance('');
+    window.speechSynthesis.speak(s);
   }
 
-  if (btnUnlockAudio) btnUnlockAudio.classList.add('unlocked');
-  if (audioBtnText) audioBtnText.textContent = 'SUARA SOUNDBOX SUDAH AKTIF ✅';
+  if (btnAudioToggle) {
+    btnAudioToggle.classList.add('unlocked');
+    if (audioStatusLabel) audioStatusLabel.textContent = 'Audio Aktif ✅';
+  }
 }
 
-if (btnUnlockAudio) btnUnlockAudio.addEventListener('click', unlockAudio);
+if (btnAudioToggle) btnAudioToggle.addEventListener('click', unlockAudio);
 document.addEventListener('click', unlockAudio, { once: true });
 document.addEventListener('touchstart', unlockAudio, { once: true });
 document.addEventListener('keydown', unlockAudio, { once: true });
 
-if (btnTestVoice) {
-  btnTestVoice.addEventListener('click', () => {
+if (btnTestAudio) {
+  btnTestAudio.addEventListener('click', () => {
     unlockAudio();
-    const currentStore = currentActiveStore === 'all' ? 'pempek' : currentActiveStore;
-    speakAnnouncement(15000, STORES[currentStore]?.name || 'Pempek Bandung');
+    const s = STORES[currentStoreKey] || STORES.pempek;
+    queueSpeech(15000, s.name);
   });
 }
 
-if (btnHeaderSimulate || btnQuickTest) {
-  const handler = () => {
+document.querySelectorAll('.pill-test').forEach(pill => {
+  pill.addEventListener('click', (e) => {
     unlockAudio();
-    const currentStore = currentActiveStore === 'all' ? 'pempek' : currentActiveStore;
-    const storeName = STORES[currentStore]?.name || 'Pempek Bandung';
-    const amount = 15000;
-    const tx = {
-      id: `SIM-${Date.now()}`,
-      transactionId: `SIM-${Date.now()}`,
-      amount,
-      storeId: currentStore,
-      storeName,
-      payer: 'Pembeli (Simulasi)',
-      timestamp: new Date().toISOString()
-    };
-    updateSoundboxLED(amount, currentStore, storeName);
-    addTransactionToFeed(tx);
-    queueAnnouncement(tx);
-  };
-
-  if (btnHeaderSimulate) btnHeaderSimulate.addEventListener('click', handler);
-  if (btnQuickTest) btnQuickTest.addEventListener('click', handler);
-}
-
-document.querySelectorAll('.btn-mini-test').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    unlockAudio();
-    const storeId = e.currentTarget.getAttribute('data-store');
-    const amount = parseInt(e.currentTarget.getAttribute('data-amount'), 10) || 15000;
-    const storeName = STORES[storeId]?.name || 'Pempek Bandung';
-    const tx = {
-      id: `SIM-${Date.now()}`,
-      transactionId: `SIM-${Date.now()}`,
-      amount,
-      storeId,
-      storeName,
-      payer: 'Pembeli (Simulasi)',
-      timestamp: new Date().toISOString()
-    };
-    updateSoundboxLED(amount, storeId, storeName);
-    addTransactionToFeed(tx);
-    queueAnnouncement(tx);
+    const amt = parseInt(e.currentTarget.getAttribute('data-amt'), 10) || 1000;
+    const s = STORES[currentStoreKey] || STORES.pempek;
+    queueSpeech(amt, s.name);
   });
 });
 
 // ==============================================================================
-// 7. GRABMERCHANT REAL-TIME POLLER (Anti-Miss, Anti-Double Guaranteed)
+// 7. REAL-TIME GRAB POLLER
 // ==============================================================================
 
-async function startGrabPolling() {
-  async function poll() {
-    if (!cbGrabAutoPoll || !cbGrabAutoPoll.checked) {
-      setTimeout(poll, 3000);
-      return;
-    }
+async function fetchGrabPoll() {
+  try {
+    const res = await fetch('/api/grab/poll');
+    const data = await res.json();
 
-    try {
-      const res = await fetch('/api/grab/poll');
-      const data = await res.json();
+    if (data.success && Array.isArray(data.transactions)) {
+      const s = STORES[currentStoreKey] || STORES.pempek;
 
-      if (data.success && Array.isArray(data.transactions)) {
-        if (!isInitialSyncDone) {
-          // On first page load: record all current history into knownTxIds so we don't spam audio for past transactions
-          data.transactions.forEach(tx => {
-            if (tx.id) knownTxIds.add(String(tx.id));
-          });
-          isInitialSyncDone = true;
+      if (!isInitialSyncDone) {
+        // First load: render recent transactions and store IDs
+        data.transactions.forEach(tx => {
+          if (tx.id) announcedTxIds.add(String(tx.id));
+        });
+        saveAnnouncedTxIds();
+        isInitialSyncDone = true;
 
-          // Populate the feed with recent transactions
-          data.transactions.slice(0, 8).forEach(tx => {
-            addTransactionToFeed({
-              id: tx.id,
-              transactionId: tx.id,
-              amount: tx.amount,
-              storeId: currentActiveStore === 'all' ? 'pempek' : currentActiveStore,
-              storeName: STORES[currentActiveStore === 'all' ? 'pempek' : currentActiveStore]?.name || 'Pempek Bandung',
-              payer: 'GrabPay / OVO QRIS',
-              timestamp: tx.created_at
-            });
-          });
-        } else {
-          // Subsequent polls: check for genuinely new transactions!
-          const newTxList = data.transactions.filter(tx => tx.id && !knownTxIds.has(String(tx.id)));
+        data.transactions.slice(0, 10).forEach(tx => {
+          addFeedRow({ ...tx, storeName: s.name });
+        });
+      } else {
+        // Subsequent polls: check for genuinely new transactions
+        const newItems = data.transactions.filter(tx => tx.id && !announcedTxIds.has(String(tx.id)));
 
-          // Process in chronological order (oldest to newest)
-          newTxList.reverse().forEach(tx => {
-            knownTxIds.add(String(tx.id));
+        // Process oldest to newest
+        newItems.reverse().forEach(tx => {
+          announcedTxIds.add(String(tx.id));
+          saveAnnouncedTxIds();
 
-            const storeKey = currentActiveStore === 'all' ? 'pempek' : currentActiveStore;
-            const storeName = STORES[storeKey]?.name || 'Pempek Bandung';
+          const payload = {
+            id: tx.id,
+            amount: tx.amount,
+            storeName: s.name,
+            type: tx.type,
+            created_at: tx.created_at
+          };
 
-            const payload = {
-              id: tx.id,
-              transactionId: tx.id,
-              amount: tx.amount,
-              storeId: storeKey,
-              storeName: storeName,
-              payer: 'GrabPay / OVO QRIS',
-              timestamp: tx.created_at || new Date().toISOString()
-            };
-
-            updateSoundboxLED(tx.amount, storeKey, storeName);
-            addTransactionToFeed(payload);
-            queueAnnouncement(payload);
-          });
-        }
-
-        if (grabPollStatusText) {
-          const timeStr = new Date().toLocaleTimeString('id-ID');
-          grabPollStatusText.textContent = `🟢 Memantau transaksi Grab (Terakhir dicek: ${timeStr})`;
-        }
+          addFeedRow(payload, true);
+          queueSpeech(tx.amount, s.name);
+        });
       }
-    } catch (err) {
-      if (grabPollStatusText) {
-        grabPollStatusText.textContent = 'Menghubungkan ke server Grab...';
+
+      if (feedSubtitle) {
+        const time = new Date().toLocaleTimeString('id-ID');
+        feedSubtitle.textContent = `🟢 Terhubung Grab (Update: ${time})`;
       }
-    } finally {
-      setTimeout(poll, 3000);
     }
+  } catch (err) {
+    if (feedSubtitle) feedSubtitle.textContent = 'Menghubungkan ke Grab...';
+  } finally {
+    setTimeout(fetchGrabPoll, 3000);
   }
-
-  poll();
 }
 
-if (btnCheckGrabMutasi) {
-  btnCheckGrabMutasi.addEventListener('click', async () => {
-    btnCheckGrabMutasi.disabled = true;
-    btnCheckGrabMutasi.textContent = 'Menarik mutasi...';
-    try {
-      const res = await fetch('/api/grab/transactions');
-      const data = await res.json();
-      if (data.success && data.data?.transactions) {
-        alert(`✅ Berhasil mengambil ${data.data.transactions.length} transaksi GrabMerchant terbaru!`);
-      }
-    } catch (e) {
-      alert(`Error: ${e.message}`);
-    } finally {
-      btnCheckGrabMutasi.disabled = false;
-      btnCheckGrabMutasi.textContent = 'Tarik Mutasi Grab Sekarang 🔄';
-    }
+if (btnManualRefresh) {
+  btnManualRefresh.addEventListener('click', async () => {
+    btnManualRefresh.style.transform = 'rotate(180deg)';
+    await fetchGrabPoll();
+    setTimeout(() => { btnManualRefresh.style.transform = 'rotate(0deg)'; }, 400);
   });
 }
 
-// Initial start
-startGrabPolling();
+// Start polling
+fetchGrabPoll();

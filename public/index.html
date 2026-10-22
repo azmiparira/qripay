@@ -3,368 +3,186 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QriPay Soundbox — GrabMerchant Official Gateway</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>QriPay Soundbox — GrabMerchant Official</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="app-layout">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="header-content">
-        <div class="brand">
-          <div class="brand-logo grab-brand-logo">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-            </svg>
-          </div>
-          <div>
-            <div class="brand-title-wrap">
-              <h1 class="brand-title">QriPay Soundbox</h1>
-              <span class="badge-grab-official">🟢 GrabMerchant Gateway</span>
-            </div>
-            <p class="brand-subtitle">Virtual Soundbox Pintar • Auto-Detect Saldo QRIS GrabMerchant</p>
-          </div>
+  <div class="soundbox-app">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="brand-icon">🔊</div>
+        <div class="brand-meta">
+          <h1>QriPay Soundbox</h1>
+          <span class="badge-grab">🟢 GrabMerchant Connected</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Audio Unlock / Test Button -->
+        <button id="btnAudioToggle" class="btn-audio-status" title="Klik untuk mengaktifkan audio">
+          <span class="audio-icon">🔈</span>
+          <span id="audioStatusLabel">Klik Aktifkan Suara</span>
+        </button>
+
+        <div class="voice-picker">
+          <select id="voicePreset">
+            <option value="natural">Suara Wanita Halus</option>
+            <option value="cheerful">Kasir Ramah</option>
+            <option value="male">Pria Santun</option>
+          </select>
         </div>
 
-        <div class="header-status">
-          <div class="status-indicator online">
-            <span class="dot"></span>
-            <span id="gatewayStatusText">GrabMerchant Online</span>
-          </div>
-          <button id="btnHeaderSimulate" class="btn-test-action" title="Uji Coba Suara">
-            ⚡ Tes Bunyi Suara
-          </button>
-        </div>
+        <button id="btnTestAudio" class="btn-test-sound">Tes 🔊</button>
       </div>
     </header>
 
-    <!-- Branch Selector Bar -->
-    <section class="branch-nav">
-      <div class="branch-nav-header">
-        <div class="branch-nav-title-wrap">
-          <span class="branch-nav-icon">🏪</span>
-          <h2 class="branch-nav-title">Pilih Cabang / Anak Perusahaan</h2>
-        </div>
-        <div class="voice-preset-group">
-          <label for="voiceSelect">Karakter Suara:</label>
-          <select id="voiceSelect" class="select-voice">
-            <option value="natural_female">👩 Wanita Halus & Lembut (Natural)</option>
-            <option value="cheerful_female">👧 Kasir Ceria & Ramah</option>
-            <option value="gentle_male">👨 Pria Santun</option>
-          </select>
-          <button id="btnTestVoice" class="btn-voice-test" title="Uji Coba Suara">Tes 🔊</button>
-        </div>
-      </div>
-
-      <div class="branch-tabs" id="branchTabs">
-        <button class="branch-tab active" data-store="pempek">
+    <!-- Store Selector Tabs -->
+    <nav class="store-tabs-wrapper">
+      <div class="store-tabs">
+        <button class="store-tab active" data-store="pempek">
           <span class="tab-emoji">🥘</span>
-          <div class="tab-text">
+          <div class="tab-info">
             <strong>Pempek Bandung</strong>
-            <small>QRIS Custom • Cabang 1</small>
+            <small>Cabang 1 • Grab QRIS</small>
           </div>
-          <span class="tab-indicator"></span>
         </button>
 
-        <button class="branch-tab" data-store="batagor">
+        <button class="store-tab" data-store="batagor">
           <span class="tab-emoji">🥟</span>
-          <div class="tab-text">
+          <div class="tab-info">
             <strong>Batagor Bandung</strong>
-            <small>QRIS Custom • Cabang 2</small>
+            <small>Cabang 2 • Grab QRIS</small>
           </div>
-          <span class="tab-indicator"></span>
         </button>
 
-        <button class="branch-tab" data-store="soto">
+        <button class="store-tab" data-store="soto">
           <span class="tab-emoji">🍲</span>
-          <div class="tab-text">
+          <div class="tab-info">
             <strong>Soto Lamongan</strong>
-            <small>QRIS Custom • Cabang 3</small>
+            <small>Cabang 3 • Grab QRIS</small>
           </div>
-          <span class="tab-indicator"></span>
         </button>
 
-        <button class="branch-tab" data-store="pusat">
+        <button class="store-tab" data-store="pusat">
           <span class="tab-emoji">🍹</span>
-          <div class="tab-text">
+          <div class="tab-info">
             <strong>Jus Smoothies (Pusat)</strong>
-            <small>Master QRIS Grab • Janji Jawa</small>
+            <small>Master Janji Jawa</small>
           </div>
-          <span class="tab-indicator"></span>
-        </button>
-
-        <button class="branch-tab" data-store="all">
-          <span class="tab-emoji">🏢</span>
-          <div class="tab-text">
-            <strong>Semua Cabang</strong>
-            <small>Multi-Monitor Soundbox</small>
-          </div>
-          <span class="tab-indicator"></span>
         </button>
       </div>
-    </section>
+    </nav>
 
-    <!-- Main Content -->
-    <main class="main-grid">
-      <!-- Left Column: Virtual Soundbox & QRIS Display -->
-      <section class="soundbox-column">
-        
-        <!-- Audio Activation Banner (Required for Browser Autoplay Policy) -->
-        <div class="audio-banner" id="audioBanner">
-          <button id="btnUnlockAudio" class="btn-unlock-audio">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-            </svg>
-            <span id="audioBtnText">KLIK 1X UNTUK MENGAKTIFKAN SUARA SOUNDBOX</span>
-          </button>
-          <p class="audio-hint">⚠️ Klik tombol di atas 1 kali agar browser diizinkan berbunyi otomatis saat ada pembeli yang scan QRIS.</p>
-        </div>
+    <!-- Main Workspace -->
+    <main class="main-container">
+      
+      <!-- Column 1: Hardware Soundbox Unit -->
+      <section class="device-panel">
+        <div class="hardware-unit" id="hardwareSoundbox">
+          <div class="hardware-top">
+            <span class="hw-brand">QRIPAY V-SOUNDBOX</span>
+            <span class="hw-status-dot online"></span>
+          </div>
 
-        <!-- 1. SINGLE STORE SOUNDBOX VIEW -->
-        <div id="singleSoundboxView">
-          <!-- Active Store Banner Pill -->
-          <div class="active-store-header" id="activeStoreHeader">
-            <span class="store-badge-icon" id="storeBadgeIcon">🥘</span>
-            <div class="store-badge-details">
-              <h3 id="storeBadgeName">Pempek Bandung</h3>
-              <p id="storeBadgeCity">Outlet Resmi • Master GrabMerchant (NMID: ID1025433207095)</p>
+          <!-- Glowing Speaker Grill -->
+          <div class="hardware-speaker" id="speakerGrill">
+            <div class="sound-wave wave-1"></div>
+            <div class="sound-wave wave-2"></div>
+            <div class="sound-wave wave-3"></div>
+            <div class="speaker-mesh">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
             </div>
           </div>
 
-          <!-- Virtual Soundbox Hardware Device -->
-          <div class="virtual-soundbox" id="mainSoundboxCard">
-            <div class="device-body">
-              <!-- Speaker Grill Animation -->
-              <div class="speaker-grill" id="speakerGrill">
-                <div class="pulse-ring ring-1"></div>
-                <div class="pulse-ring ring-2"></div>
-                <div class="pulse-ring ring-3"></div>
-                <div class="speaker-icon">
-                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 5"></polygon>
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Digital LED Screen -->
-              <div class="led-screen">
-                <span class="led-label" id="ledStoreTag">KASIR PEMPEK BANDUNG</span>
-                <div class="led-amount" id="displayAmount">STANDBY</div>
-                <div class="led-info" id="displayInfo">Menunggu pembayaran QRIS dari pembeli...</div>
-              </div>
-            </div>
+          <!-- Digital LED Screen -->
+          <div class="hardware-screen">
+            <div class="screen-store" id="screenStoreLabel">PEMPEK BANDUNG</div>
+            <div class="screen-amount" id="screenAmount">STANDBY</div>
+            <div class="screen-status" id="screenStatus">Siap menerima pembayaran QRIS</div>
           </div>
 
-          <!-- Static QRIS Display Card -->
-          <div class="card qris-card">
-            <div class="card-header">
-              <div>
-                <h3 id="qrisCardTitle">Poster QRIS Resmi Pempek Bandung</h3>
-                <p class="card-desc">Scan menggunakan BCA, Mandiri, BRI, Dana, GoPay, OVO, dll.</p>
-              </div>
-              <span class="badge-pill badge-live">Grab QRIS Valid</span>
-            </div>
-
-            <div class="qris-display-body">
-              <div class="qris-wrapper">
-                <img id="qrisImage" src="/qris_pempekbandung.png" alt="QRIS Code" class="qris-img">
-                <div class="qris-scan-overlay">
-                  <span class="scan-line"></span>
-                </div>
-              </div>
-
-              <div class="qris-details">
-                <div class="detail-row">
-                  <span class="detail-label">Merchant Name</span>
-                  <strong class="detail-val" id="qrisMerchantName">PEMPEK BANDUNG</strong>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">NMID Nasional</span>
-                  <span class="detail-val font-mono">ID1025433207095</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Acquirer Gateway</span>
-                  <span class="detail-val">GrabPay / OVO (PT Visionet)</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Lokasi Toko</span>
-                  <span class="detail-val">Bandung, Jawa Barat (40614)</span>
-                </div>
-
-                <div class="qris-actions" style="margin-top: 15px;">
-                  <a id="btnDownloadQR" href="/qris_pempekbandung.png" download="QRIS_Pempek_Bandung.png" class="btn-primary-action">
-                    Download Poster QRIS 📥
-                  </a>
-                  <button id="btnQuickTest" class="btn-outline-action">
-                    Simulasi Bayar Rp 15.000 ⚡
-                  </button>
-                </div>
-              </div>
+          <!-- Hardware Device Footer -->
+          <div class="hardware-footer">
+            <span class="hw-info-label">GrabMerchant • OVO / QRIS Acquirer</span>
+            <div class="quick-test-pills">
+              <span>Tes Cepat:</span>
+              <button class="pill-test" data-amt="10">Rp 10</button>
+              <button class="pill-test" data-amt="1000">Rp 1.000</button>
+              <button class="pill-test" data-amt="15000">Rp 15.000</button>
             </div>
           </div>
         </div>
-
-        <!-- 2. MULTI STORE VIEW (All Branches) -->
-        <div id="multiSoundboxView" style="display: none;">
-          <div class="multi-header-banner">
-            <h3>Dashboard Soundbox Multi-Cabang</h3>
-            <p>Memantau transaksi seluruh cabang toko secara real-time dari satu layar.</p>
-          </div>
-
-          <div class="multi-boxes-grid">
-            <!-- Box 1: Pempek Bandung -->
-            <div class="mini-soundbox-card" id="miniBoxPempek">
-              <div class="mini-soundbox-header">
-                <span class="mini-icon">🥘</span>
-                <strong>Pempek Bandung</strong>
-              </div>
-              <div class="mini-speaker" id="miniSpeakerPempek">
-                <div class="mini-pulse-ring"></div>
-                <span>🔊</span>
-              </div>
-              <div class="mini-led">
-                <div class="mini-led-amount" id="miniAmountPempek">STANDBY</div>
-                <div class="mini-led-info" id="miniInfoPempek">Siap melayani</div>
-              </div>
-              <div class="mini-qris-thumb">
-                <img src="/qris_pempekbandung.png" alt="QR Pempek">
-              </div>
-              <button class="btn-mini-test" data-store="pempek" data-amount="15000">Tes Bayar Rp 15.000</button>
-            </div>
-
-            <!-- Box 2: Batagor Bandung -->
-            <div class="mini-soundbox-card" id="miniBoxBatagor">
-              <div class="mini-soundbox-header">
-                <span class="mini-icon">🥟</span>
-                <strong>Batagor Bandung</strong>
-              </div>
-              <div class="mini-speaker" id="miniSpeakerBatagor">
-                <div class="mini-pulse-ring"></div>
-                <span>🔊</span>
-              </div>
-              <div class="mini-led">
-                <div class="mini-led-amount" id="miniAmountBatagor">STANDBY</div>
-                <div class="mini-led-info" id="miniInfoBatagor">Siap melayani</div>
-              </div>
-              <div class="mini-qris-thumb">
-                <img src="/qris_batagorbandung.png" alt="QR Batagor">
-              </div>
-              <button class="btn-mini-test" data-store="batagor" data-amount="20000">Tes Bayar Rp 20.000</button>
-            </div>
-
-            <!-- Box 3: Soto Lamongan -->
-            <div class="mini-soundbox-card" id="miniBoxSoto">
-              <div class="mini-soundbox-header">
-                <span class="mini-icon">🍲</span>
-                <strong>Soto Lamongan</strong>
-              </div>
-              <div class="mini-speaker" id="miniSpeakerSoto">
-                <div class="mini-pulse-ring"></div>
-                <span>🔊</span>
-              </div>
-              <div class="mini-led">
-                <div class="mini-led-amount" id="miniAmountSoto">STANDBY</div>
-                <div class="mini-led-info" id="miniInfoSoto">Siap melayani</div>
-              </div>
-              <div class="mini-qris-thumb">
-                <img src="/qris_sotolamongan.png" alt="QR Soto">
-              </div>
-              <button class="btn-mini-test" data-store="soto" data-amount="25000">Tes Bayar Rp 25.000</button>
-            </div>
-          </div>
-        </div>
-
       </section>
 
-      <!-- Right Column: Real-Time Feed & GrabMerchant Integration Card -->
-      <section class="info-column">
-        
-        <!-- GrabMerchant Gateway Card -->
-        <div class="card grab-card" id="grabGatewayCard">
-          <div class="card-header">
-            <div class="header-with-badge">
-              <div class="grab-badge-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                  <path d="M2 17l10 5 10-5"></path>
-                  <path d="M2 12l10 5 10-5"></path>
-                </svg>
-              </div>
-              <div>
-                <h3>GrabMerchant Portal Gateway</h3>
-                <p class="card-desc">Koneksi langsung ke server GrabMerchant (Otomatis Deteksi Saldo)</p>
-              </div>
-            </div>
-            <span id="grabStatusBadge" class="badge-pill badge-live">🟢 Terhubung</span>
-          </div>
-
-          <div class="grab-body" style="padding: 16px;">
-            <div class="merchant-info-box" style="background: rgba(0, 177, 79, 0.08); border: 1px solid rgba(0, 177, 79, 0.25); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Toko GrabMerchant Aktif</span>
-                <span style="font-size: 11px; background: rgba(0, 177, 79, 0.2); color: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: 600;">OVO / QRIS Online</span>
-              </div>
-              <strong id="grabStoreName" style="display: block; font-size: 14px; color: #fff;">Jus Smoothies - Janji Jawa - AZMI ADI PARIRA</strong>
-              <small id="grabStoreId" style="display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px;">Store ID: 03555c6f-2c66-466d-8c26-a404adbc8ebb • Bandung</small>
-            </div>
-
-            <!-- Auto-Polling Checkbox for Grab -->
-            <div class="auto-poll-box" id="grabAutoPollBox" style="margin-top: 0; margin-bottom: 14px;">
-              <label class="toggle-container">
-                <input type="checkbox" id="cbGrabAutoPoll" checked>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                  <strong>Auto-Soundbox Real-Time Aktif</strong>
-                  <small>Mengecek transaksi QRIS Grab setiap 3 detik & otomatis bersuara saat ada uang masuk</small>
-                </span>
-              </label>
-              <div class="poll-live-indicator">
-                <span class="pulse-dot"></span>
-                <span id="grabPollStatusText">Memantau transaksi QRIS Grab...</span>
-              </div>
-            </div>
-
-            <div class="shopee-actions">
-              <button id="btnCheckGrabMutasi" class="btn-grab" style="width: 100%;">
-                <span>Tarik Mutasi Grab Sekarang 🔄</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Real-Time Transactions Feed -->
-        <div class="card feed-card">
-          <div class="card-header">
+      <!-- Column 2: Clean QRIS Display -->
+      <section class="qris-panel">
+        <div class="panel-card">
+          <div class="panel-header">
             <div>
-              <h3>Riwayat Transaksi Real-Time</h3>
-              <p class="card-desc">Daftar transaksi uang masuk terverifikasi Grab</p>
+              <h3 id="qrisTitle">QRIS Pempek Bandung</h3>
+              <p class="panel-subtitle">Scan via BCA, Mandiri, BRI, DANA, GoPay, OVO, ShopeePay</p>
             </div>
-            <span class="badge-pill badge-live" id="liveBadge">LIVE FEED</span>
+            <span class="tag-verified">NMID: ID1025433207095</span>
           </div>
 
-          <div class="feed-list" id="transactionFeed">
-            <div class="empty-state" id="emptyFeedState">
-              <span class="empty-icon">⏳</span>
-              <p>Belum ada transaksi baru terdeteksi.<br><small>Begitu ada yang membayar via QRIS, suara akan berbunyi dan transaksi muncul di sini.</small></p>
+          <div class="qris-box">
+            <div class="qris-img-frame">
+              <img id="activeQrisImage" src="/qris_pempekbandung.png" alt="QRIS Code">
             </div>
+            <div class="qris-meta">
+              <div class="meta-item">
+                <small>Nama Toko QRIS</small>
+                <strong id="qrisStoreName">PEMPEK BANDUNG</strong>
+              </div>
+              <div class="meta-item">
+                <small>Lokasi Toko</small>
+                <span>Bandung, Jawa Barat (40614)</span>
+              </div>
+              <div class="meta-item">
+                <small>Acquirer Resmi</small>
+                <span>GrabPay / OVO (PT Visionet Internasional)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-actions">
+            <a id="btnDownloadQris" href="/qris_pempekbandung.png" download="QRIS_Pempek_Bandung.png" class="btn-action-primary">
+              Download QRIS Poster 📥
+            </a>
           </div>
         </div>
-
       </section>
+
+      <!-- Column 3: Real-Time Live Feed -->
+      <section class="feed-panel">
+        <div class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h3>Mutasi Masuk Real-Time</h3>
+              <p class="panel-subtitle" id="feedSubtitle">Memantau transaksi Grab (Auto 3s)</p>
+            </div>
+            <button id="btnManualRefresh" class="btn-icon-refresh" title="Refresh Sekarang">🔄</button>
+          </div>
+
+          <div class="feed-list" id="feedList">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <!-- Footer -->
     <footer class="app-footer">
-      <p>QriPay Soundbox • GrabMerchant Official Gateway Integration</p>
+      <p>QriPay Virtual Soundbox • GrabMerchant Portal Gateway (Jus Smoothies Janji Jawa)</p>
     </footer>
   </div>
 
