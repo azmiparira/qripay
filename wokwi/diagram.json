@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "author": "QriPay Soundbox Engineering",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-ssd1306",
+      "id": "oled",
+      "top": -150,
+      "left": -30,
+      "attrs": {
+        "i2cAddress": "0x3c"
+      }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": 40,
+      "left": 180,
+      "attrs": {
+        "volume": "0.2"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": -80,
+      "left": 180,
+      "attrs": {
+        "color": "green",
+        "label": "STATUS"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": -40,
+      "left": 170,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnPay",
+      "top": 150,
+      "left": -60,
+      "attrs": {
+        "color": "green",
+        "label": "TES BAYAR"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnStore",
+      "top": 150,
+      "left": 40,
+      "attrs": {
+        "color": "blue",
+        "label": "GANTI TOKO"
+      }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "esp:3V3", "oled:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "oled:GND", "black", [ "v0" ] ],
+    [ "esp:D21", "oled:SDA", "green", [ "v-30", "h-40" ] ],
+    [ "esp:D22", "oled:SCL", "blue", [ "v-40", "h-30" ] ],
+    [ "esp:D25", "bz1:2", "purple", [ "h30", "v0" ] ],
+    [ "esp:GND.2", "bz1:1", "black", [ "h30", "v0" ] ],
+    [ "esp:D2", "r1:1", "orange", [ "h30", "v-20" ] ],
+    [ "r1:2", "led1:A", "orange", [ "v0" ] ],
+    [ "esp:GND.2", "led1:C", "black", [ "h50", "v-60" ] ],
+    [ "esp:D4", "btnPay:2.1", "green", [ "v30", "h-20" ] ],
+    [ "esp:GND.1", "btnPay:1.1", "black", [ "v40", "h-50" ] ],
+    [ "esp:D5", "btnStore:2.1", "blue", [ "v30", "h20" ] ],
+    [ "esp:GND.1", "btnStore:1.1", "black", [ "v50", "h30" ] ]
+  ],
+  "dependencies": {}
+}

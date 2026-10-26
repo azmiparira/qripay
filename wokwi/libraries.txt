@@ -1,0 +1,4 @@
+# Wokwi Arduino Library Dependencies
+Adafruit SSD1306
+Adafruit GFX Library
+ArduinoJson
