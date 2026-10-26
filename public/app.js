@@ -315,7 +315,7 @@ function addFeedRow(item, isNew = false) {
 // 5. STORE SELECTION
 // ==============================================================================
 
-function selectStore(key) {
+function selectStore(key, updateUrl = true) {
   const s = STORES[key];
   if (!s) return;
   currentStoreKey = key;
@@ -332,7 +332,27 @@ function selectStore(key) {
     btnDownloadQris.href = s.qrisImg;
     btnDownloadQris.setAttribute('download', s.downloadName);
   }
+
+  // Update browser URL in address bar to ?store=... without page reload
+  if (updateUrl && window.history && window.history.replaceState) {
+    try {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('store', key);
+      window.history.replaceState({ store: key }, '', newUrl.toString());
+    } catch (e) {}
+  }
 }
+
+// Handle browser back/forward navigation
+window.addEventListener('popstate', () => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const st = params.get('store');
+    if (st && STORES[st]) {
+      selectStore(st, false);
+    }
+  } catch (e) {}
+});
 
 document.querySelectorAll('.store-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -608,7 +628,7 @@ try {
   const urlParams = new URLSearchParams(window.location.search);
   const targetStore = urlParams.get('store');
   if (targetStore && STORES[targetStore]) {
-    selectStore(targetStore);
+    selectStore(targetStore, false);
   }
 } catch (e) {}
 
