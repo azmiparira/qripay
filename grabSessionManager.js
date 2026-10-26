@@ -18,8 +18,8 @@ const DEFAULT_SESSION = {
   grab_id: 'e47c9598-ffc0-443b-9a7a-b93deddb7df8',
   store_name: 'Jus Smoothies - Janji Jawa - AZMI ADI PARIRA',
   city: 'Bandung',
-  cookie: '_gsvid=0fd84a99-0937-48b6-b187-8452cb881f24; _ga=GA1.1.415443980.1792490580; OptanonAlertBoxClosed=2026-10-20T12:54:23.322Z; DEVICE_ID=ee51c0c5-21cf-478f-a80c-6775994eee4a; OptanonConsent=isGpcEnabled=0&datestamp=Tue+Oct+20+2026+19%3A54%3A29+GMT%2B0700+(Western+Indonesia+Time)&version=202304.1.0&browserGpcFlag=0&isIABGlobal=false&hosts=&landingPath=NotLandingPage&AwaitingReconsent=false&groups=C0001%3A1%2CC0002%3A1%2CC0003%3A1%2CC0004%3A1; hwuuidtime=1792500894; hwuuid=c6cf6293-a68d-47e3-ac4e-b0b21f167207; AWSELB=53B7490F14CB44B3C3CAE476A7D8BD7A112F66C8F807333E5C78FD4109F65AFEAFB0F879845C0A73F156E64C2CCDE9D0CAB038FA02BB863294F60D8297EC55AE9E6BDE1549; AWSELBCORS=53B7490F14CB44B3C3CAE476A7D8BD7A112F66C8F807333E5C78FD4109F65AFEAFB0F879845C0A73F156E64C2CCDE9D0CAB038FA02BB863294F60D8297EC55AE9E6BDE1549; _gssid=2609241147-0qc93em21pxc; geo_country=EMPTY; geo_city=EMPTY; _ga_CCE1VPQSKS=GS2.1.s1792842456$o4$g0$t1792842456$j60$l0$h0; mexusers_authn_token=eyJhbGciOiJFUzI1NiIsImtpZCI6IkVTMjU2XzE3ODY2NTI4MzYiLCJ0eXAiOiJKV1QifQ.eyJhbXIiOiJXRUJMT0dJTiIsImF1ZCI6IlNTT19UT0tFTl9JU1NVSU5HX1NFUlZJQ0UiLCJlc2kiOiJXb0lWVzdQQ0MvVnhLRGlpRlc0a3h0dlBTKzBoUGpwaFEvR1U3MFhnQUlrdWpjd0VORWd5U3VPdW44MFlIQT09IiwiZXhwIjoxNzkzMDE1MjcwLCJpYXQiOjE3OTI4NDI0NjcsImp0aSI6IjVjOGZkYmQ1LTMwZmUtNDIzNS1hMjZlLWZjOTA1ZmU3Mjc0YyIsInN1YiI6ImU0N2M5NTk4LWZmYzAtNDQzYi05YTdhLWI5M2RlZGRiN2RmOCIsInN2YyI6Ik1FWFVTRVJTIn0.OwO9_TViY8feii1yncG5owTxYn8hZIImhsdX6BM6YkRhtVGCcCHjCFlZ1oFHjxNf64ahE07j9iA63IpnE2HY9g; mexusers_authn_token_jti=5c8fdbd5-30fe-4235-a26e-fc905fe7274c; sa_MEXUSERS_c20e6c0fd4=eyJhbGciOiJFUzI1NiIsImtpZCI6IkVTMjU2XzE3ODY2NTI3MDUiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJNRVhVU0VSUyIsImV4cCI6MTc5NTQzNDQ3MCwiaWF0IjoxNzkyODQyNDcwLCJqdGkiOiIwYTdiMmZiY2Y2ODE0ZDU5OTU1ZGM5OGEyNmNiZTk1YyIsIm5iZiI6MTc5Mjg0MjQ0MCwic3ViIjoiZTQ3Yzk1OTgtZmZjMC00NDNiLTlhN2EtYjkzZGVkZGI3ZGY4In0.J-x8Qf6jD8JPNDdBLuoWd-9c6FzW70CI7-cF7tnNBDO6xiEyN2Hx80IZJevWb-T53qsO0c0geskBag50Nfi20g; visits=1; hwToken=b080ebb038cf0568453ae4f859519206; hwTime=1792842536661; _dd_s=logs=1&id=1cc94b23-e2f7-4783-afb1-64ed6aea6960&created=1792842459349&expire=1792843441070&rum=0',
-  expires_at: '2026-10-26T11:47:50.000Z'
+  cookie: '_gsvid=0fd84a99-0937-48b6-b187-8452cb881f24; _ga=GA1.1.415443980.1792490580; OptanonAlertBoxClosed=2026-10-20T12:54:23.322Z; DEVICE_ID=ee51c0c5-21cf-478f-a80c-6775994eee4a; OptanonConsent=isGpcEnabled=0&datestamp=Tue+Oct+20+2026+19%3A54%3A29+GMT%2B0700+(Western+Indonesia+Time)&version=202304.1.0&browserGpcFlag=0&isIABGlobal=false&hosts=&landingPath=NotLandingPage&AwaitingReconsent=false&groups=C0001%3A1%2CC0002%3A1%2CC0003%3A1%2CC0004%3A1; hwuuidtime=1792500894; hwuuid=c6cf6293-a68d-47e3-ac4e-b0b21f167207; _ga_CCE1VPQSKS=GS2.1.s1792842456$o4$g0$t1792843142$j60$l0$h0; AWSELB=53B7490F14CB44B3C3CAE476A7D8BD7A112F66C8F807333E5C78FD4109F65AFEAFB0F879844BA5674BE47D52B41AEDC0C91AC16DC1BB863294F60D8297EC55AE9E6BDE1549; AWSELBCORS=53B7490F14CB44B3C3CAE476A7D8BD7A112F66C8F807333E5C78FD4109F65AFEAFB0F879844BA5674BE47D52B41AEDC0C91AC16DC1BB863294F60D8297EC55AE9E6BDE1549; _gssid=2609261244-zy49qul8wl; mexusers_authn_token=eyJhbGciOiJFUzI1NiIsImtpZCI6IkVTMjU2XzE3ODY2NTI4MzYiLCJ0eXAiOiJKV1QifQ.eyJhbXIiOiJXRUJMT0dJTiIsImF1ZCI6IlNTT19UT0tFTl9JU1NVSU5HX1NFUlZJQ0UiLCJlc2kiOiJ3MURORVF5MUZlYzdOblRRVFdkam5ITS9XRHl1VlFiWm50d1hFVlEwaml2RVhMMGJ3SE5BN3kvcmN3b0xjZz09IiwiZXhwIjoxNzkzMTkxNTQwLCJpYXQiOjE3OTMwMTg3MzcsImp0aSI6ImVkY2FjZTg2LTgxNTMtNGUzZi1iZjc2LWI0M2M4MDFlZGRjYiIsInN1YiI6ImU0N2M5NTk4LWZmYzAtNDQzYi05YTdhLWI5M2RlZGRiN2RmOCIsInN2YyI6Ik1FWFVTRVJTIn0.x6w723PltWM_9jf4Qj782mv8eP27G9mn18SBxzHPmq1eo4nA7fhNSPGg3pQCgs0-ScmAjtNTJJr69zZ1WvhlVw; mexusers_authn_token_jti=edcace86-8153-4e3f-bf76-b43c801eddcb; sa_MEXUSERS_c20e6c0fd4=eyJhbGciOiJFUzI1NiIsImtpZCI6IkVTMjU2XzE3ODY2NTI3MDUiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJNRVhVU0VSUyIsImV4cCI6MTc5NTYxMDc0MCwiaWF0IjoxNzkzMDE4NzQwLCJqdGkiOiI0N2UwZjk0OWRhZWI0ZjgyOTM0YzdjMGMyMDIxMmY0YiIsIm5iZiI6MTc5MzAxODcxMCwic3ViIjoiZTQ3Yzk1OTgtZmZjMC00NDNiLTlhN2EtYjkzZGVkZGI3ZGY4In0.fGgWgCXa8PiDGUw4YI3o4BfjvR9nWkRnK8KyTd0_1nn7-UntzuPLDux4fIWfCBfR2d6FqVlngusMX_kwOkvYxg; visits=1; hwToken=86e32028ad33acee09f4af348eb32d4b; hwTime=1793018764900; _dd_s=logs=1&id=c30477ff-f0c2-4edf-8dcb-6938225496ef&created=1793018687057&expire=1793019675768&rum=0',
+  expires_at: '2026-10-28T12:45:40.000Z'
 };
 
 let inMemorySession = null;
@@ -214,9 +214,14 @@ async function updateSessionFromCurl(rawInput) {
   if (parsed.store_id) candidate.store_id = parsed.store_id;
   if (parsed.grab_id) candidate.grab_id = parsed.grab_id;
 
-  // Test candidate against Grab API
+  // Test candidate against Grab API (Grab requires from & to date range)
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const past = new Date(now.getTime() - 2 * 24 * 3600 * 1000);
+  const fromStr = past.toISOString().split('T')[0];
+
   const headers = buildHeaders(candidate);
-  const testUrl = `https://merchant.grab.com/mex/finances/v2/transactions?merchant_group_id=${candidate.merchant_group_id}&limit=1&offset=0&currency=IDR&store_id=${candidate.store_id}`;
+  const testUrl = `https://merchant.grab.com/mex/finances/v2/transactions?merchant_group_id=${candidate.merchant_group_id}&from=${fromStr}&to=${todayStr}&limit=1&offset=0&currency=IDR&store_id=${candidate.store_id}`;
 
   try {
     const res = await axios.get(testUrl, { headers, timeout: 10000 });
