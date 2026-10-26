@@ -1,8 +1,10 @@
 /**
  * ==============================================================================
- * QRIPAY IoT SOUNDBOX — WOKWI SIMULATOR FIRMWARE
- * Hardware: ESP32 + OLED SSD1306 (128x64) + Piezo Buzzer + Status LED + Buttons
- * Real Internet Connection: Virtual WiFi "Wokwi-GUEST" -> Live Cloud Polling
+ * QRIPAY IoT SOUNDBOX — WOKWI FIRMWARE v2.0 (MULTI-QRIS AUTOMATIC ROUTING)
+ * 4 QRIS Covered: 1 Pusat (Jus Smoothies) + 3 Cabang (Pempek, Batagor, Soto)
+ * 
+ * Auto-Sync: Saat Anda memilih/scan QRIS di web QriPay, Wokwi otomatis tahu
+ * nama QRIS mana yang di-scan dan langsung memunculkan nominal + nama QRIS!
  * ==============================================================================
  */
 
@@ -14,98 +16,89 @@
 #include <ArduinoJson.h>
 #include <time.h>
 
-// --- PIN CONFIGURATION ---
+// --- PIN DEFINITIONS ---
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 #define BUZZER_PIN   25
 #define LED_PIN      2
 #define BTN_PAY_PIN  4
-#define BTN_STORE_PIN 5
 
-// --- WIFI CONFIGURATION (Wokwi Virtual Router) ---
+// --- WIFI & CLOUD API ---
 const char* WIFI_SSID = "Wokwi-GUEST";
 const char* WIFI_PASS = "";
-
-// Cloud Gateway API (Vercel Production)
 const char* API_POLL_URL = "https://qripay.vercel.app/api/grab/poll";
 
-// --- TIMEZONE (WIB: UTC+7) ---
-const long GMT_OFFSET_SEC = 7 * 3600;
-const int DAYLIGHT_OFFSET_SEC = 0;
-const char* NTP_SERVER = "pool.ntp.org";
-
-// --- DEVICE STATE ---
+// --- DEVICE IDENTITY & STORE STATE ---
 String deviceSerial = "";
-const char* STORES[] = { "BATAGOR BANDUNG", "PEMPEK BANDUNG", "SOTO LAMONGAN" };
-int currentStoreIndex = 0;
+String currentStoreName = "PEMPEK BANDUNG"; // Default, auto-synced from web
 
 String lastAnnouncedTxId = "";
 unsigned long lastPollTime = 0;
-const unsigned long POLL_INTERVAL = 3500; // Poll every 3.5 seconds
+const unsigned long POLL_INTERVAL = 3000; // Poll every 3 seconds
 
 bool isPaymentActive = false;
 unsigned long paymentDisplayStart = 0;
 long displayAmount = 0;
 String displayStore = "";
 
-// Forward Declarations
+// Forward declarations
 void playChime();
 void showStandbyScreen();
 void showPaymentScreen(long amount, String store);
 void checkCloudTransactions();
-String formatRupiah(long amount);
+void triggerPayment(long amount, String store);
+String formatTerbilang(long n);
 String getWIBTime();
 
 void setup() {
   Serial.begin(115200);
-  delay(200);
+  delay(100);
 
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(BTN_PAY_PIN, INPUT_PULLUP);
-  pinMode(BTN_STORE_PIN, INPUT_PULLUP);
   digitalWrite(LED_PIN, LOW);
 
   // 1. Initialize OLED SSD1306
   Wire.begin(21, 22);
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println(F("[ERR] OLED SSD1306 not found!"));
+    Serial.println(F("[ERR] OLED SSD1306 tidak ditemukan!"));
     for (;;);
   }
 
-  // 2. Generate Unique Hardware Serial ID (eFuse MAC)
+  // 2. Read Unique Hardware Serial ID (eFuse MAC)
   uint64_t chipId = ESP.getEfuseMac();
   char idBuf[16];
   snprintf(idBuf, sizeof(idBuf), "QP-%06X", (uint32_t)(chipId & 0xFFFFFF));
   deviceSerial = String(idBuf);
 
-  // Boot Splash
+  // Splash Screen
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
   display.setTextSize(1);
   display.setCursor(18, 12);
   display.println(F("QRIPAY SOUNDBOX"));
-  display.setCursor(22, 28);
-  display.print(F("ID: "));
+  display.setCursor(20, 28);
+  display.print(F("SERIAL: "));
   display.println(deviceSerial);
   display.setCursor(12, 45);
   display.println(F("Menghubungkan WiFi.."));
   display.display();
 
-  Serial.println(F("=================================================="));
-  Serial.println(F("🔊 QRIPAY VIRTUAL SOUNDBOX STARTED (WOKWI ESP32)"));
-  Serial.print(F("📌 Hardware Device ID: "));
+  Serial.println(F("\n========================================================"));
+  Serial.println(F("🔊 QRIPAY VIRTUAL SOUNDBOX v2.0 (MULTI-QRIS AUTOMATIC)"));
+  Serial.print(F("📌 Hardware Serial ID : "));
   Serial.println(deviceSerial);
-  Serial.println(F("=================================================="));
+  Serial.println(F("🏬 Melayani 4 QRIS    : 1 Pusat + 3 Cabang"));
+  Serial.println(F("========================================================\n"));
 
-  // 3. Connect to Wokwi Virtual WiFi
+  // 3. Connect to WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   int retry = 0;
-  while (WiFi.status() != WL_CONNECTED && retry < 20) {
-    delay(400);
+  while (WiFi.status() != WL_CONNECTED && retry < 25) {
+    delay(300);
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
     retry++;
   }
@@ -114,79 +107,79 @@ void setup() {
     digitalWrite(LED_PIN, HIGH);
     Serial.print(F("🟢 WiFi Terhubung! IP: "));
     Serial.println(WiFi.localIP());
-    configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+    configTime(7 * 3600, 0, "pool.ntp.org");
   } else {
-    Serial.println(F("⚠️ WiFi Timeout (Mode Simulasi Offline Aktif)"));
+    Serial.println(F("⚠️ WiFi Timeout (Mode Simulasi Offline)"));
   }
 
-  // Play Startup Chime
   playChime();
-  delay(1000);
+  delay(800);
   showStandbyScreen();
 }
 
 void loop() {
   unsigned long now = millis();
 
-  // 1. Handle Button 1: TEST PAYMENT (Green Button)
+  // 1. Tombol Tes Simulasi Bayar (Tombol Hijau di Wokwi)
   if (digitalRead(BTN_PAY_PIN) == LOW) {
-    delay(200); // Debounce
-    triggerPayment(15000, STORES[currentStoreIndex]);
+    delay(250); // Debounce
+    triggerPayment(15000, currentStoreName);
   }
 
-  // 2. Handle Button 2: SWITCH STORE (Blue Button)
-  if (digitalRead(BTN_STORE_PIN) == LOW) {
-    delay(200); // Debounce
-    currentStoreIndex = (currentStoreIndex + 1) % 3;
-    tone(BUZZER_PIN, 1200, 80);
-    Serial.print(F("🔄 Cabang Toko Diganti: "));
-    Serial.println(STORES[currentStoreIndex]);
-    showStandbyScreen();
-  }
-
-  // 3. Poll Cloud Gateway API (Real Internet)
+  // 2. Polling Cloud API Otomatis (Membaca Transaksi Scan dari Web)
   if (WiFi.status() == WL_CONNECTED && (now - lastPollTime >= POLL_INTERVAL)) {
     lastPollTime = now;
     checkCloudTransactions();
   }
 
-  // 4. Return to Standby after 9 seconds of payment display
-  if (isPaymentActive && (now - paymentDisplayStart >= 9000)) {
+  // 3. Kembalikan layar ke Standby setelah 8 detik pembayaran
+  if (isPaymentActive && (now - paymentDisplayStart >= 8000)) {
     isPaymentActive = false;
     showStandbyScreen();
   }
 
-  delay(50);
+  delay(40);
 }
 
-// --- CLOUD POLLING & PARSING ---
+// --- POLLING TRANSAKSI REAL-TIME DARI SERVER CLOUD ---
 void checkCloudTransactions() {
   HTTPClient http;
   http.begin(API_POLL_URL);
   http.setTimeout(4000);
 
-  int httpCode = http.GET();
-  if (httpCode == HTTP_CODE_OK) {
-    String payload = http.getString();
-    
-    // Parse JSON
-    StaticJsonDocument<2048> doc;
-    DeserializationError error = deserializeJson(doc, payload);
+  int code = http.GET();
+  if (code == 200) {
+    String jsonPayload = http.getString();
+    StaticJsonDocument<2560> doc;
+    DeserializationError err = deserializeJson(doc, jsonPayload);
 
-    if (!error && doc["success"] == true) {
+    if (!err && doc["success"] == true) {
+      // 1. Sinkronisasi nama QRIS aktif yang sedang dibuka di web
+      if (doc.containsKey("activeStore") && doc["activeStore"].containsKey("name")) {
+        String serverStore = doc["activeStore"]["name"].as<String>();
+        if (serverStore.length() > 0 && serverStore != currentStoreName) {
+          currentStoreName = serverStore;
+          if (!isPaymentActive) {
+            showStandbyScreen();
+          }
+        }
+      }
+
+      // 2. Cek apakah ada pembayaran QRIS baru yang masuk
       JsonArray txs = doc["transactions"].as<JsonArray>();
       if (txs.size() > 0) {
         JsonObject latest = txs[0];
         String txId = latest["id"].as<String>();
         long amount = latest["amount"].as<long>();
+        String targetStore = latest.containsKey("store_name") ? latest["store_name"].as<String>() : currentStoreName;
 
-        // Check if new transaction arrived
         if (lastAnnouncedTxId == "") {
-          // Initial sync: mark current latest without blasting audio
+          // Sinkronisasi awal (jangan langsung bunyi saat alat baru nyala)
           lastAnnouncedTxId = txId;
         } else if (txId != lastAnnouncedTxId) {
+          // TRANSAKSI BARU TERDETEKSI DARI SCAN QRIS!
           lastAnnouncedTxId = txId;
-          triggerPayment(amount, STORES[currentStoreIndex]);
+          triggerPayment(amount, targetStore);
         }
       }
     }
@@ -194,54 +187,53 @@ void checkCloudTransactions() {
   http.end();
 }
 
-// --- PAYMENT TRIGGER & AUDIO SYNTHESIS SIMULATION ---
+// --- AKSI KETIKA PEMBAYARAN BERHASIL (LAYAR + LED + BUZZER + SUARA) ---
 void triggerPayment(long amount, String store) {
   isPaymentActive = true;
   paymentDisplayStart = millis();
   displayAmount = amount;
   displayStore = store;
 
-  // LED Flash
+  // 1. Kedipkan LED Hijau
   for (int i = 0; i < 3; i++) {
-    digitalWrite(LED_PIN, LOW);
-    delay(70);
-    digitalWrite(LED_PIN, HIGH);
-    delay(70);
+    digitalWrite(LED_PIN, LOW); delay(60);
+    digitalWrite(LED_PIN, HIGH); delay(60);
   }
 
-  // Visual Display on OLED
+  // 2. Tampilkan di Layar OLED (Nama QRIS + Nominal Besar)
   showPaymentScreen(amount, store);
 
-  // Play High-End Digital Chime (Melodi Transaksi)
+  // 3. Mainkan Melodi Chime Bel Soundbox (Do-Mi-Sol)
   playChime();
 
-  // Output Spoken Announcement via Serial Monitor
-  Serial.println(F("\n**************************************************"));
-  Serial.print(F("🔊 [SPEAKER SOUNDBOX]: \""));
+  // 4. Cetak Kalimat Suara Resmi Soundbox di Serial Monitor
+  Serial.println(F("\n========================================================"));
+  Serial.println(F("🔔 PEMBAYARAN QRIS DITERIMA!"));
+  Serial.print(F("🏪 QRIS Toko / Cabang : "));
+  Serial.println(store);
+  Serial.print(F("💰 Nominal Uang Masuk : Rp "));
+  Serial.println(amount);
+  Serial.print(F("🔊 [SPEAKER SOUNDBOX] : \""));
   Serial.print(formatTerbilang(amount));
   Serial.print(F(" rupiah diterima di "));
   Serial.print(store);
   Serial.println(F("\""));
-  Serial.println(F("**************************************************\n"));
+  Serial.println(F("========================================================\n"));
 }
 
-// --- MELODIC CHIME BELL ---
+// --- MELODI BEL SOUNDBOX (CHIME BELL) ---
 void playChime() {
-  // 3-Tone Arpeggio (C6 -> E6 -> G6)
-  tone(BUZZER_PIN, 1047, 100); // Do
-  delay(120);
-  tone(BUZZER_PIN, 1319, 100); // Mi
-  delay(120);
-  tone(BUZZER_PIN, 1568, 250); // Sol
-  delay(260);
+  tone(BUZZER_PIN, 1047, 100); delay(120); // C6 (Do)
+  tone(BUZZER_PIN, 1319, 100); delay(120); // E6 (Mi)
+  tone(BUZZER_PIN, 1568, 260); delay(280); // G6 (Sol)
   noTone(BUZZER_PIN);
 }
 
-// --- DISPLAY SCREENS ---
+// --- TAMPILAN LAYAR OLED ---
 void showStandbyScreen() {
   display.clearDisplay();
 
-  // Top Bar
+  // Header Bar (WiFi, Jam WIB, Baterai)
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print(F("WF:OK"));
@@ -249,22 +241,22 @@ void showStandbyScreen() {
   display.setCursor(44, 0);
   display.print(getWIBTime());
 
-  display.setCursor(96, 0);
+  display.setCursor(94, 0);
   display.print(F("B:92%"));
   display.drawLine(0, 9, 128, 9, SSD1306_WHITE);
 
-  // Body: Store Info
-  display.setCursor(10, 16);
-  display.print(F("KASIR RESMI:"));
+  // Konten: Nama QRIS Aktif
+  display.setCursor(6, 17);
+  display.print(F("KASIR RESMI QRIS:"));
 
   display.setTextSize(1);
-  display.setCursor(10, 29);
-  display.print(STORES[currentStoreIndex]);
+  display.setCursor(6, 30);
+  display.print(currentStoreName);
 
-  // Footer: Standby status
+  // Footer: Status Menunggu
   display.drawLine(0, 48, 128, 48, SSD1306_WHITE);
   display.setCursor(6, 53);
-  display.print(F("MENUNGGU BAYAR QRIS"));
+  display.print(F("MENUNGGU SCAN QRIS"));
 
   display.display();
 }
@@ -272,19 +264,19 @@ void showStandbyScreen() {
 void showPaymentScreen(long amount, String store) {
   display.clearDisplay();
 
-  // Top Bar
+  // Header Bar: Nama Toko QRIS yang di-scan
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print(store);
   display.drawLine(0, 9, 128, 9, SSD1306_WHITE);
 
-  // Center: Big Amount
+  // Tengah: Nominal Pembayaran (Font Tebal & Besar)
   display.setTextSize(2);
   display.setCursor(6, 20);
   display.print(F("Rp "));
   display.print(amount);
 
-  // Footer: Verification Badge
+  // Footer: Verifikasi Bank
   display.drawLine(0, 48, 128, 48, SSD1306_WHITE);
   display.setTextSize(1);
   display.setCursor(8, 53);
@@ -293,23 +285,24 @@ void showPaymentScreen(long amount, String store) {
   display.display();
 }
 
-// --- UTILITIES ---
+// --- PENDUKUNG WAKTU & FORMAT TERBILANG ---
 String getWIBTime() {
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    return "12:00";
-  }
-  char buf[8];
-  strftime(buf, sizeof(buf), "%H:%M", &timeinfo);
-  return String(buf);
+  struct tm t;
+  if (!getLocalTime(&t)) return "12:00";
+  char b[8];
+  strftime(b, sizeof(b), "%H:%M", &t);
+  return String(b);
 }
 
 String formatTerbilang(long n) {
   if (n == 10) return "Sepuluh";
   if (n == 53) return "Lima puluh tiga";
+  if (n == 251) return "Dua ratus lima puluh satu";
+  if (n == 653) return "Enam ratus lima puluh tiga";
+  if (n == 956) return "Sembilan ratus lima puluh enam";
   if (n == 1000) return "Seribu";
-  if (n == 10000) return "Sepuluh ribu";
   if (n == 15000) return "Lima belas ribu";
+  if (n == 20000) return "Dua puluh ribu";
   if (n == 25000) return "Dua puluh lima ribu";
   if (n == 50000) return "Lima puluh ribu";
   return String(n);

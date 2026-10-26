@@ -37,11 +37,11 @@ const STORES = {
   },
   pusat: {
     id: 'pusat',
-    name: 'Jus Smoothies Cipadung',
+    name: 'Jus Smoothies Pusat',
     emoji: '🍹',
     qrisImg: '/qris_pempekbandung.png',
-    qrisTitle: 'Master QRIS Grab (Janji Jawa)',
-    qrisStoreName: 'BAKSO / JUS SMOOTHIES',
+    qrisTitle: 'Master QRIS Grab (Pusat)',
+    qrisStoreName: 'JUS SMOOTHIES PUSAT',
     downloadName: 'QRIS_Master_Grab.png'
   }
 };
@@ -341,6 +341,13 @@ function selectStore(key, updateUrl = true) {
       window.history.replaceState({ store: key }, '', newUrl.toString());
     } catch (e) {}
   }
+
+  // Sync active QRIS store to backend so Wokwi & server know which store was scanned
+  fetch('/api/store/active', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: s.id, name: s.name })
+  }).catch(() => {});
 }
 
 // Handle browser back/forward navigation

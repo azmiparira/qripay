@@ -25,7 +25,7 @@
       "top": 40,
       "left": 180,
       "attrs": {
-        "volume": "0.2"
+        "volume": "0.3"
       }
     },
     {
@@ -51,20 +51,10 @@
       "type": "wokwi-pushbutton",
       "id": "btnPay",
       "top": 150,
-      "left": -60,
+      "left": -10,
       "attrs": {
         "color": "green",
-        "label": "TES BAYAR"
-      }
-    },
-    {
-      "type": "wokwi-pushbutton",
-      "id": "btnStore",
-      "top": 150,
-      "left": 40,
-      "attrs": {
-        "color": "blue",
-        "label": "GANTI TOKO"
+        "label": "TES SIMULASI BAYAR"
       }
     }
   ],
@@ -81,9 +71,7 @@
     [ "r1:2", "led1:A", "orange", [ "v0" ] ],
     [ "esp:GND.2", "led1:C", "black", [ "h50", "v-60" ] ],
     [ "esp:D4", "btnPay:2.1", "green", [ "v30", "h-20" ] ],
-    [ "esp:GND.1", "btnPay:1.1", "black", [ "v40", "h-50" ] ],
-    [ "esp:D5", "btnStore:2.1", "blue", [ "v30", "h20" ] ],
-    [ "esp:GND.1", "btnStore:1.1", "black", [ "v50", "h30" ] ]
+    [ "esp:GND.1", "btnPay:1.1", "black", [ "v40", "h-50" ] ]
   ],
   "dependencies": {}
 }

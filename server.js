@@ -18,6 +18,24 @@ const transactions = [];
 const MAX_HISTORY = 100;
 let lastCheckTime = null;
 
+// Currently active QRIS store being displayed/scanned on the web
+let activeStore = {
+  id: 'pempek',
+  name: 'Pempek Bandung'
+};
+
+app.get('/api/store/active', (req, res) => {
+  res.json({ success: true, activeStore });
+});
+
+app.post('/api/store/active', (req, res) => {
+  const { id, name } = req.body || {};
+  if (id && name) {
+    activeStore = { id, name };
+  }
+  res.json({ success: true, activeStore });
+});
+
 function recordTransaction(tx) {
   const item = {
     id: tx.id || String(Date.now()),
@@ -123,15 +141,25 @@ app.get('/api/grab/poll', async (req, res) => {
     const normalized = grabSessionManager.normalizeTransactions(apiData);
     lastCheckTime = new Date().toISOString();
 
+    // Tag transactions with the currently active QRIS store name scanned on web
+    const taggedTransactions = normalized.map((tx, idx) => ({
+      ...tx,
+      store_name: idx === 0 ? activeStore.name : (tx.store_name || activeStore.name),
+      store_id: idx === 0 ? activeStore.id : (tx.store_id || activeStore.id),
+      scanned_store_name: activeStore.name,
+      scanned_store_id: activeStore.id
+    }));
+
     res.json({
       success: true,
       connected: true,
       serverTime: lastCheckTime,
-      totalCount: normalized.length,
-      transactions: normalized
+      activeStore,
+      totalCount: taggedTransactions.length,
+      transactions: taggedTransactions
     });
   } catch (err) {
-    res.json({ success: false, error: err.message });
+    res.json({ success: false, error: err.message, activeStore });
   }
 });
 
