@@ -1,9 +1,13 @@
 /**
  * ==============================================================================
- * QRIPAY IoT SOUNDBOX — FIRMWARE v3.0 (MULTI-DEVICE REGISTRY SE-INDONESIA)
+ * QRIPAY IoT SOUNDBOX — FIRMWARE v3.5 (UNIVERSAL MULTI-QRIS NETWORK)
  * ------------------------------------------------------------------------------
- * Prototipe Soundbox Mandiri untuk Jaringan Kasir Multi-Cabang.
- * Setiap tab Wokwi menyimulasikan 1 perangkat Soundbox fisik di meja kasir.
+ * Cukup buka 1 TAB WOKWI!
+ * Soundbox ini otomatis mendeteksi dan mengumumkan pembayaran dari ke-4 QRIS:
+ * 1. JUS SMOOTHIES PUSAT
+ * 2. PEMPEK BANDUNG
+ * 3. BATAGOR BANDUNG
+ * 4. SOTO LAMONGAN
  * ==============================================================================
  */
 
@@ -17,15 +21,19 @@
 #include <time.h>
 
 // ==============================================================================
-// 🏬 IDENTITAS PERANGKAT SOUNDBOX (PILIH 1 UNTUK SETIAP TAB WOKWI):
+// 🏬 PENGATURAN MODE SOUNDBOX:
 // ------------------------------------------------------------------------------
-// Cukup ganti nilai MY_BRANCH_ID di bawah ini pada setiap tab Wokwi Anda:
-//   "pusat"   -> JUS SMOOTHIES PUSAT  (Device ID: SB-PUSAT-01)
-//   "pempek"  -> PEMPEK BANDUNG       (Device ID: SB-PEMPEK-01)
-//   "batagor" -> BATAGOR BANDUNG      (Device ID: SB-BATAGOR-01)
-//   "soto"    -> SOTO LAMONGAN        (Device ID: SB-SOTO-01)
+// "all"     -> [DIREKOMENDASIKAN] CUKUP 1 TAB WOKWI:
+//              Bisa menerima transaksi dari ke-4 cabang QRIS secara bersamaan!
+//              (Solusi resmi karena Wokwi gratis membatasi 1 koneksi WiFi per browser).
+//
+// Atau jika ingin menguji 1 cabang khusus:
+// "pempek"  -> Khusus kasir Pempek Bandung
+// "batagor" -> Khusus kasir Batagor Bandung
+// "soto"    -> Khusus kasir Soto Lamongan
+// "pusat"   -> Khusus kasir Jus Smoothies Pusat
 // ==============================================================================
-const char* MY_BRANCH_ID = "pempek"; // <-- UBAH DI SINI UNTUK SETIAP TAB WOKWI
+const char* MY_BRANCH_ID = "all"; // <-- Mode "all" untuk 4 QRIS sekaligus dalam 1 tab
 
 // --- PIN DEFINITIONS (WOKWI HARDWARE) ---
 #define SCREEN_WIDTH 128
@@ -45,6 +53,7 @@ const char* CLOUD_HOST = "https://qripay.vercel.app";
 String branchName = "";
 String deviceSerial = "";
 String branchLocation = "";
+String currentActiveStore = "PEMPEK BANDUNG";
 
 String lastAnnouncedTxId = "";
 unsigned long lastPollTime = 0;
@@ -54,14 +63,15 @@ unsigned long lastReconnectAttempt = 0;
 bool isPaymentActive = false;
 unsigned long paymentDisplayStart = 0;
 long displayAmount = 0;
+String displayStore = "";
 
 // Forward Declarations
 void resolveBranchIdentity();
 void playChime();
 void showStandbyScreen();
-void showPaymentScreen(long amount);
+void showPaymentScreen(long amount, String store);
 void checkCloudTransactions();
-void triggerLocalPayment(long amount, const char* payer);
+void triggerPayment(long amount, String store, String devId, const char* payer);
 void sendCloudSimulation(long amount);
 String formatTerbilang(long n);
 String getWIBTime();
@@ -75,7 +85,7 @@ void setup() {
   pinMode(BTN_PAY_PIN, INPUT_PULLUP);
   digitalWrite(LED_PIN, LOW);
 
-  // 1. Tentukan Identitas Cabang & Serial Number Perangkat
+  // 1. Tentukan Identitas Perangkat
   resolveBranchIdentity();
 
   // 2. Inisialisasi Layar OLED SSD1306
@@ -101,14 +111,14 @@ void setup() {
   display.display();
 
   Serial.println(F("\n========================================================"));
-  Serial.println(F("🔊 QRIPAY IoT SOUNDBOX v3.0 (MULTI-DEVICE REGISTRY)"));
-  Serial.print(F("🏪 Cabang Kasir       : ")); Serial.println(branchName);
+  Serial.println(F("🔊 QRIPAY IoT SOUNDBOX v3.5 (UNIVERSAL MULTI-QRIS)"));
+  Serial.print(F("🏪 Mode Soundbox      : ")); Serial.println(branchName);
   Serial.print(F("📱 Soundbox Device ID : ")); Serial.println(deviceSerial);
-  Serial.print(F("📍 Lokasi Cabang      : ")); Serial.println(branchLocation);
+  Serial.print(F("📍 Jaringan           : ")); Serial.println(branchLocation);
   Serial.print(F("🌐 Server Cloud       : ")); Serial.println(CLOUD_HOST);
   Serial.println(F("========================================================\n"));
 
-  // 3. Sambungkan ke WiFi Virtual Wokwi (Gunakan Channel 6 untuk Bypass Channel Scan Wokwi)
+  // 3. Sambungkan ke WiFi Virtual Wokwi (Channel 6 untuk bypass scanning)
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS, 6);
   Serial.print(F("Menghubungkan ke WiFi Wokwi"));
@@ -128,8 +138,7 @@ void setup() {
     Serial.println(WiFi.localIP());
     configTime(7 * 3600, 0, "pool.ntp.org");
     Serial.println(F("🟢 Terhubung ke Jaringan QriPay Cloud!"));
-    Serial.print(F("⏳ Siap menerima scan QRIS di meja kasir "));
-    Serial.println(branchName);
+    Serial.println(F("⏳ Siap menerima pembayaran dari 4 QRIS (Pusat, Pempek, Batagor, Soto)..."));
   } else {
     Serial.println(F("⚠️ WiFi Timeout (Mode Simulasi Standalone)"));
   }
@@ -142,22 +151,23 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // 1. Auto-Reconnect WiFi jika sempat putus
+  // 1. Auto-Reconnect WiFi jika terputus
   if (WiFi.status() != WL_CONNECTED && (now - lastReconnectAttempt >= 6000)) {
     lastReconnectAttempt = now;
     WiFi.begin(WIFI_SSID, WIFI_PASS, 6);
   }
 
-  // 2. Tombol Hijau: Uji Simulasi Pembeli Scan di Meja Kasir Cabang Ini
+  // 2. Tombol Hijau: Uji Cepat Bayar Langsung di Wokwi
   if (digitalRead(BTN_PAY_PIN) == LOW) {
     delay(250); // Debounce
-    triggerLocalPayment(15000, "Pembeli (Scan QRIS Kasir)");
+    String targetStore = (strcmp(MY_BRANCH_ID, "all") == 0) ? currentActiveStore : branchName;
+    triggerPayment(15000, targetStore, deviceSerial, "Tombol Kasir Wokwi");
     if (WiFi.status() == WL_CONNECTED) {
       sendCloudSimulation(15000);
     }
   }
 
-  // 3. Polling Cloud API Khusus Cabang Ini (Mendeteksi Transaksi QRIS Real-Time)
+  // 3. Polling Transaksi QRIS Real-Time dari Cloud Server
   if (WiFi.status() == WL_CONNECTED && (now - lastPollTime >= POLL_INTERVAL)) {
     lastPollTime = now;
     checkCloudTransactions();
@@ -172,9 +182,13 @@ void loop() {
   delay(40);
 }
 
-// --- RESOLVE IDENTITAS PERANGKAT SESUAI CABANG ---
+// --- RESOLVE IDENTITAS PERANGKAT ---
 void resolveBranchIdentity() {
-  if (strcmp(MY_BRANCH_ID, "pempek") == 0) {
+  if (strcmp(MY_BRANCH_ID, "all") == 0) {
+    branchName = "SEMUA CABANG (4 QRIS)";
+    deviceSerial = "SB-MULTI-01";
+    branchLocation = "Jaringan Multi-Kasir Nasional";
+  } else if (strcmp(MY_BRANCH_ID, "pempek") == 0) {
     branchName = "PEMPEK BANDUNG";
     deviceSerial = "SB-PEMPEK-01";
     branchLocation = "Bandung (Cabang Buah Batu)";
@@ -197,7 +211,7 @@ void resolveBranchIdentity() {
   }
 }
 
-// --- CEK TRANSAKSI KHUSUS CABANG INI DARI CLOUD SERVER ---
+// --- CEK TRANSAKSI DARI CLOUD SERVER ---
 void checkCloudTransactions() {
   WiFiClientSecure client;
   client.setInsecure(); // Wokwi SSL bypass
@@ -214,20 +228,38 @@ void checkCloudTransactions() {
       DeserializationError err = deserializeJson(doc, payload);
 
       if (!err && doc["success"] == true) {
+        // Sinkronisasi kasir aktif yang sedang dibuka di web
+        if (doc.containsKey("activeStore") && doc["activeStore"].containsKey("name")) {
+          String activeWebStore = doc["activeStore"]["name"].as<String>();
+          if (activeWebStore.length() > 0 && activeWebStore != currentActiveStore) {
+            currentActiveStore = activeWebStore;
+            if (!isPaymentActive) showStandbyScreen();
+          }
+        }
+
         JsonArray txs = doc["transactions"].as<JsonArray>();
         if (txs.size() > 0) {
           JsonObject latest = txs[0];
           String txId = latest["id"].as<String>();
           long amount = latest["amount"].as<long>();
           const char* payer = latest["payer"] | "Pembeli QRIS";
+          
+          String txStore = currentActiveStore;
+          if (latest.containsKey("storeName")) {
+            txStore = latest["storeName"].as<String>();
+          } else if (latest.containsKey("store_name")) {
+            txStore = latest["store_name"].as<String>();
+          }
+          
+          String txDevice = latest.containsKey("deviceId") ? latest["deviceId"].as<String>() : deviceSerial;
 
           if (lastAnnouncedTxId == "") {
-            // Sinkronisasi awal saat soundbox baru menyala (jangan langsung bunyi)
+            // Sinkronisasi awal (jangan bunyi saat baru nyala)
             lastAnnouncedTxId = txId;
           } else if (txId != lastAnnouncedTxId) {
-            // 🎉 TRANSAKSI BARU KHUSUS MEJA KASIR CABANG INI!
+            // 🎉 PEMBAYARAN MASUK DARI QRIS!
             lastAnnouncedTxId = txId;
-            triggerLocalPayment(amount, payer);
+            triggerPayment(amount, txStore, txDevice, payer);
           }
         }
       }
@@ -237,10 +269,11 @@ void checkCloudTransactions() {
 }
 
 // --- AKSI PEMBAYARAN DITERIMA (BUZZER + OLED + LED + SUARA) ---
-void triggerLocalPayment(long amount, const char* payer) {
+void triggerPayment(long amount, String store, String devId, const char* payer) {
   isPaymentActive = true;
   paymentDisplayStart = millis();
   displayAmount = amount;
+  displayStore = store;
 
   // 1. Kedipkan LED Hijau 3x
   for (int i = 0; i < 3; i++) {
@@ -249,23 +282,22 @@ void triggerLocalPayment(long amount, const char* payer) {
   }
 
   // 2. Tampilkan di Layar OLED (Nominal Besar + Nama Cabang)
-  showPaymentScreen(amount);
+  showPaymentScreen(amount, store);
 
   // 3. Bunyikan Bel Transaksi Soundbox (Melodi Do-Mi-Sol)
   playChime();
 
   // 4. Cetak Kalimat Suara Resmi Soundbox di Serial Monitor
   Serial.println(F("\n========================================================"));
-  Serial.println(F("🔔 PEMBAYARAN QRIS DITERIMA DI MEJA KASIR!"));
-  Serial.print(F("🏪 Cabang Toko        : ")); Serial.println(branchName);
-  Serial.print(F("📱 Soundbox Device ID : ")); Serial.println(deviceSerial);
-  Serial.print(F("📍 Lokasi             : ")); Serial.println(branchLocation);
+  Serial.println(F("🔔 PEMBAYARAN QRIS DITERIMA!"));
+  Serial.print(F("🏪 QRIS Toko / Cabang : ")); Serial.println(store);
+  Serial.print(F("📱 Soundbox Device ID : ")); Serial.println(devId);
   Serial.print(F("💰 Nominal Uang Masuk : Rp ")); Serial.println(amount);
-  Serial.print(F("💳 Pembayar           : ")); Serial.println(payer);
+  Serial.print(F("💳 Metode Pembayaran  : ")); Serial.println(payer);
   Serial.print(F("🔊 [SPEAKER SOUNDBOX] : \""));
   Serial.print(formatTerbilang(amount));
   Serial.print(F(" rupiah diterima di "));
-  Serial.print(branchName);
+  Serial.print(store);
   Serial.println(F("\""));
   Serial.println(F("========================================================\n"));
 }
@@ -279,7 +311,7 @@ void sendCloudSimulation(long amount) {
   String triggerUrl = String(CLOUD_HOST) + "/api/soundbox/trigger";
   if (http.begin(client, triggerUrl)) {
     http.addHeader("Content-Type", "application/json");
-    String postBody = "{\"branch\":\"" + String(MY_BRANCH_ID) + "\",\"amount\":" + String(amount) + ",\"payer\":\"Tombol Kasir Wokwi\"}";
+    String postBody = "{\"branch\":\"pempek\",\"amount\":" + String(amount) + ",\"payer\":\"Tombol Kasir Wokwi\"}";
     http.POST(postBody);
     http.end();
   }
@@ -309,12 +341,16 @@ void showStandbyScreen() {
   display.print(F("B:98%"));
   display.drawLine(0, 9, 128, 9, SSD1306_WHITE);
 
-  // Tengah: Identitas Cabang & Device ID
+  // Tengah: Identitas Kasir Aktif
   display.setCursor(4, 16);
   display.print(F("KASIR RESMI QRIS:"));
 
   display.setCursor(4, 28);
-  display.print(branchName);
+  if (strcmp(MY_BRANCH_ID, "all") == 0) {
+    display.print(currentActiveStore);
+  } else {
+    display.print(branchName);
+  }
 
   display.setCursor(4, 40);
   display.print(F("DEV: "));
@@ -329,13 +365,13 @@ void showStandbyScreen() {
 }
 
 // --- TAMPILAN LAYAR OLED PEMBAYARAN MASUK ---
-void showPaymentScreen(long amount) {
+void showPaymentScreen(long amount, String store) {
   display.clearDisplay();
 
-  // Header Bar: Nama Cabang
+  // Header Bar: Nama Toko Cabang yang dibayar
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.print(branchName);
+  display.print(store);
   display.drawLine(0, 9, 128, 9, SSD1306_WHITE);
 
   // Tengah: Nominal Angka Besar & Tebal

@@ -129,10 +129,30 @@ app.post('/api/store/active', (req, res) => {
 /**
  * Dedicated Polling Endpoint for ESP32 Soundboxes (e.g., in Wokwi or real devices)
  * GET /api/soundbox/poll?branch=pempek&device=SB-PEMPEK-01
- * ONLY returns transactions belonging to that specific branch!
+ * If branch=all, acts as a Universal Receiver for all 4 QRIS stores (solves Wokwi 1-WiFi limit)
  */
 app.get('/api/soundbox/poll', (req, res) => {
-  const branch = (req.query.branch || 'pempek').toLowerCase();
+  const branch = (req.query.branch || 'all').toLowerCase();
+
+  // Mode "ALL": Universal multi-branch listener (perfect for running in 1 single Wokwi tab)
+  if (branch === 'all') {
+    Object.keys(soundboxDevices).forEach(key => {
+      soundboxDevices[key].lastSeen = Date.now();
+    });
+
+    return res.json({
+      success: true,
+      branch: 'all',
+      storeName: activeStore.name || 'Semua Cabang (4 QRIS)',
+      deviceId: 'SB-MULTI-01',
+      location: 'Jaringan Multi-Kasir',
+      serverTime: new Date().toISOString(),
+      activeStore,
+      totalCount: transactions.length,
+      transactions: transactions.slice(0, 10)
+    });
+  }
+
   const storeInfo = STORES[branch] || STORES.pempek;
   const deviceId = req.query.device || storeInfo.deviceId;
 
