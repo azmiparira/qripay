@@ -69,6 +69,22 @@ function saveAnnouncedTxIds() {
 // 2. DOM ELEMENTS
 // ==============================================================================
 
+const btnOpenSessionModal = document.getElementById('btnOpenSessionModal');
+const sessionStatusDot = document.getElementById('sessionStatusDot');
+const sessionStatusText = document.getElementById('sessionStatusText');
+
+const sessionModal = document.getElementById('sessionModal');
+const btnCloseSessionModal = document.getElementById('btnCloseSessionModal');
+const btnCancelSession = document.getElementById('btnCancelSession');
+const btnSubmitCurl = document.getElementById('btnSubmitCurl');
+const btnSubmitCurlText = document.getElementById('btnSubmitCurlText');
+const curlInput = document.getElementById('curlInput');
+const sessionAlert = document.getElementById('sessionAlert');
+
+const modalSessionState = document.getElementById('modalSessionState');
+const modalSessionExpiry = document.getElementById('modalSessionExpiry');
+const modalSessionStore = document.getElementById('modalSessionStore');
+
 const btnAudioToggle = document.getElementById('btnAudioToggle');
 const audioStatusLabel = document.getElementById('audioStatusLabel');
 const voicePreset = document.getElementById('voicePreset');
@@ -404,5 +420,155 @@ if (btnManualRefresh) {
   });
 }
 
-// Start polling
+// ==============================================================================
+// 7. GRAB SESSION MANAGEMENT (cURL AUTO-PARSER)
+// ==============================================================================
+
+function formatDateTime(isoString) {
+  if (!isoString) return '-';
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+  } catch (e) {
+    return isoString;
+  }
+}
+
+function showSessionAlert(message, type = 'error') {
+  if (!sessionAlert) return;
+  sessionAlert.textContent = message;
+  sessionAlert.className = `alert-box ${type}`;
+}
+
+async function checkSessionStatus() {
+  try {
+    const res = await fetch('/api/grab/status');
+    const data = await res.json();
+    if (data.success) {
+      const isExpired = data.isExpired;
+      const expiryFormatted = formatDateTime(data.expiresAt);
+
+      if (modalSessionState) {
+        modalSessionState.textContent = isExpired ? 'Kadaluarsa' : 'Aktif (Online)';
+        modalSessionState.className = `status-tag ${isExpired ? 'expired' : 'online'}`;
+      }
+      if (modalSessionExpiry) {
+        modalSessionExpiry.textContent = expiryFormatted;
+      }
+      if (modalSessionStore) {
+        modalSessionStore.textContent = data.storeName || 'Jus Smoothies Janji Jawa';
+      }
+
+      if (sessionStatusDot && sessionStatusText && btnOpenSessionModal) {
+        if (isExpired) {
+          sessionStatusDot.textContent = '🔴';
+          sessionStatusText.textContent = 'Sesi Kadaluarsa (Klik Perbarui)';
+          btnOpenSessionModal.classList.add('expired');
+        } else {
+          sessionStatusDot.textContent = '🟢';
+          const shortDate = expiryFormatted.includes(',') ? expiryFormatted.split(',')[0] : expiryFormatted;
+          sessionStatusText.textContent = `Grab Aktif (s/d ${shortDate})`;
+          btnOpenSessionModal.classList.remove('expired');
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Gagal cek status sesi Grab:', err);
+  }
+}
+
+function openSessionModal() {
+  if (sessionModal) {
+    sessionModal.classList.remove('hidden');
+    if (sessionAlert) sessionAlert.classList.add('hidden');
+    checkSessionStatus();
+    if (curlInput) {
+      setTimeout(() => curlInput.focus(), 100);
+    }
+  }
+}
+
+function closeSessionModal() {
+  if (sessionModal) {
+    sessionModal.classList.add('hidden');
+  }
+}
+
+if (btnOpenSessionModal) {
+  btnOpenSessionModal.addEventListener('click', (e) => {
+    e.preventDefault();
+    openSessionModal();
+  });
+}
+
+if (btnCloseSessionModal) {
+  btnCloseSessionModal.addEventListener('click', closeSessionModal);
+}
+
+if (btnCancelSession) {
+  btnCancelSession.addEventListener('click', closeSessionModal);
+}
+
+if (sessionModal) {
+  sessionModal.addEventListener('click', (e) => {
+    if (e.target === sessionModal) closeSessionModal();
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && sessionModal && !sessionModal.classList.contains('hidden')) {
+    closeSessionModal();
+  }
+});
+
+if (btnSubmitCurl) {
+  btnSubmitCurl.addEventListener('click', async () => {
+    const text = curlInput.value.trim();
+    if (!text) {
+      showSessionAlert('Silakan tempel teks cURL terlebih dahulu.', 'error');
+      return;
+    }
+
+    btnSubmitCurl.disabled = true;
+    btnSubmitCurlText.textContent = 'Memverifikasi ke Grab... ⏳';
+    sessionAlert.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/grab/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ curl: text })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showSessionAlert(`✅ ${data.message} (Aktif s/d: ${formatDateTime(data.data?.expires_at)})`, 'success');
+        curlInput.value = '';
+        checkSessionStatus();
+        fetchGrabPoll();
+        setTimeout(() => {
+          closeSessionModal();
+        }, 1800);
+      } else {
+        showSessionAlert(`❌ ${data.error || 'Gagal memproses cURL Grab'}`, 'error');
+      }
+    } catch (err) {
+      showSessionAlert(`❌ Gagal menghubungi server: ${err.message}`, 'error');
+    } finally {
+      btnSubmitCurl.disabled = false;
+      btnSubmitCurlText.textContent = '⚡ Ekstrak & Aktifkan Sesi Sekarang';
+    }
+  });
+}
+
+// Initial checks & start polling
+checkSessionStatus();
 fetchGrabPoll();
+setInterval(checkSessionStatus, 30000); // Check status every 30s

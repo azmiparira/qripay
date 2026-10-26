@@ -121,6 +121,125 @@ async function fetchTransactions(options = {}) {
 }
 
 /**
+ * Parse raw cURL (bash) command or raw cookie string and extract Grab authentication tokens
+ */
+function parseCurlOrRaw(raw) {
+  if (!raw || typeof raw !== 'string') {
+    throw new Error('Input cURL atau token tidak boleh kosong');
+  }
+
+  const cleanRaw = raw.replace(/\\\r?\n/g, ' ').trim();
+
+  // 1. Extract cookie from -b, --cookie, or -H 'cookie:'
+  let cookie = '';
+  const bMatch = cleanRaw.match(/-b\s+['"]([^'"]+)['"]/);
+  const cookieFlagMatch = cleanRaw.match(/--cookie\s+['"]([^'"]+)['"]/);
+  const hCookieMatch = cleanRaw.match(/-H\s+['"][Cc]ookie:\s*([^'"]+)['"]/i);
+
+  if (bMatch) {
+    cookie = bMatch[1];
+  } else if (cookieFlagMatch) {
+    cookie = cookieFlagMatch[1];
+  } else if (hCookieMatch) {
+    cookie = hCookieMatch[1];
+  } else if (cleanRaw.includes('mexusers_authn_token=')) {
+    cookie = cleanRaw;
+  }
+
+  // 2. Extract mexusers_authn_token
+  let authnToken = '';
+  const searchSource = cookie || cleanRaw;
+  const tokenMatch = searchSource.match(/mexusers_authn_token=([A-Za-z0-9_\-\.]+)/);
+  if (tokenMatch) {
+    authnToken = tokenMatch[1];
+  } else if (/^[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+$/.test(cleanRaw.trim())) {
+    authnToken = cleanRaw.trim();
+  }
+
+  if (!authnToken) {
+    throw new Error('Token mexusers_authn_token tidak ditemukan dalam cURL yang ditempel. Pastikan menyalin cURL lengkap dari DevTools tab Network.');
+  }
+
+  // 3. Decode JWT payload to get exact expiration & account ID
+  let jwtPayload = {};
+  try {
+    const parts = authnToken.split('.');
+    if (parts.length >= 2) {
+      const buff = Buffer.from(parts[1], 'base64');
+      jwtPayload = JSON.parse(buff.toString('utf8'));
+    }
+  } catch (e) {
+    console.warn('Gagal membaca JWT payload:', e.message);
+  }
+
+  const expires_at = jwtPayload.exp ? new Date(jwtPayload.exp * 1000).toISOString() : null;
+
+  // 4. Extract merchant_group_id if present
+  const mgMatch = cleanRaw.match(/merchant_group_id=([A-Za-z0-9]+)/) || cleanRaw.match(/x-merchant-id:\s*([A-Za-z0-9]+)/i);
+  const merchant_group_id = mgMatch ? mgMatch[1] : undefined;
+
+  // 5. Extract store_id if present
+  const storeMatch = cleanRaw.match(/store_id=([a-f0-9\-]+)/) || cleanRaw.match(/\/stores\/([a-f0-9\-]+)/);
+  const store_id = storeMatch ? storeMatch[1] : undefined;
+
+  // 6. Extract grab_id if present
+  const grabMatch = cleanRaw.match(/grab-id:\s*([a-f0-9\-]+)/i);
+  const grab_id = grabMatch ? grabMatch[1] : (jwtPayload.sub || undefined);
+
+  return {
+    cookie: cookie || `mexusers_authn_token=${authnToken}`,
+    authn_token: authnToken,
+    expires_at,
+    merchant_group_id,
+    store_id,
+    grab_id
+  };
+}
+
+/**
+ * Validate candidate session by making a real test request to Grab API,
+ * and if valid, persist it permanently.
+ */
+async function updateSessionFromCurl(rawInput) {
+  const parsed = parseCurlOrRaw(rawInput);
+  const current = loadSession();
+
+  const candidate = {
+    ...current,
+    cookie: parsed.cookie,
+    expires_at: parsed.expires_at || current.expires_at
+  };
+
+  if (parsed.merchant_group_id) candidate.merchant_group_id = parsed.merchant_group_id;
+  if (parsed.store_id) candidate.store_id = parsed.store_id;
+  if (parsed.grab_id) candidate.grab_id = parsed.grab_id;
+
+  // Test candidate against Grab API
+  const headers = buildHeaders(candidate);
+  const testUrl = `https://merchant.grab.com/mex/finances/v2/transactions?merchant_group_id=${candidate.merchant_group_id}&limit=1&offset=0&currency=IDR&store_id=${candidate.store_id}`;
+
+  try {
+    const res = await axios.get(testUrl, { headers, timeout: 10000 });
+    // Success! Save session
+    const saved = saveSession(candidate);
+    return {
+      success: true,
+      message: 'Sesi Grab berhasil diperbarui dan aktif!',
+      expires_at: saved.expires_at,
+      store_name: saved.store_name,
+      store_id: saved.store_id,
+      merchant_group_id: saved.merchant_group_id
+    };
+  } catch (err) {
+    const status = err.response ? err.response.status : null;
+    if (status === 401 || status === 403) {
+      throw new Error('Token Grab ditolak (401 Unauthorized). Sesi di browser Grab mungkin sudah kadaluarsa atau logout. Silakan login ulang di merchant.grab.com dan salin cURL baru.');
+    }
+    throw new Error(`Gagal menghubungi server Grab (${status || err.message})`);
+  }
+}
+
+/**
  * Normalize Grab transactions to unified format
  */
 function normalizeTransactions(apiResponse) {
@@ -146,5 +265,7 @@ module.exports = {
   buildHeaders,
   fetchTransactions,
   normalizeTransactions,
+  parseCurlOrRaw,
+  updateSessionFromCurl,
   DEFAULT_SESSION
 };

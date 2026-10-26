@@ -58,10 +58,14 @@ app.get('/api/status', (req, res) => {
 
 app.get('/api/grab/status', (req, res) => {
   const session = grabSessionManager.loadSession();
-  const isConnected = !!(session && session.cookie);
+  const expiresAt = session?.expires_at ? new Date(session.expires_at) : null;
+  const isExpired = expiresAt ? (new Date() > expiresAt) : false;
+  const isConnected = !!(session && session.cookie && !isExpired);
+
   res.json({
     success: true,
     connected: isConnected,
+    isExpired,
     storeName: session?.store_name || 'Jus Smoothies - Janji Jawa - AZMI ADI PARIRA',
     storeId: session?.store_id || '03555c6f-2c66-466d-8c26-a404adbc8ebb',
     merchantGroupId: session?.merchant_group_id || 'IDMG20250905033145011397',
@@ -69,6 +73,32 @@ app.get('/api/grab/status', (req, res) => {
     expiresAt: session?.expires_at || null,
     lastChecked: lastCheckTime
   });
+});
+
+app.post('/api/grab/session', async (req, res) => {
+  try {
+    const rawInput = req.body?.curl || req.body?.raw || req.body?.token;
+    if (!rawInput) {
+      return res.status(400).json({
+        success: false,
+        error: 'Teks cURL atau token tidak boleh kosong. Silakan tempel seluruh perintah cURL dari browser.'
+      });
+    }
+
+    const result = await grabSessionManager.updateSessionFromCurl(rawInput);
+    lastCheckTime = new Date().toISOString();
+
+    res.json({
+      success: true,
+      message: 'Sesi Grab berhasil diperbarui dan aktif!',
+      data: result
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      error: err.message || 'Gagal memproses cURL Grab'
+    });
+  }
 });
 
 app.get('/api/grab/transactions', async (req, res) => {

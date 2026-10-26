@@ -17,7 +17,11 @@
         <div class="brand-icon">🔊</div>
         <div class="brand-meta">
           <h1>QriPay Soundbox</h1>
-          <span class="badge-grab">🟢 GrabMerchant Connected</span>
+          <button id="btnOpenSessionModal" class="badge-grab" title="Klik untuk cek atau perbarui sesi Grab">
+            <span id="sessionStatusDot">🟢</span>
+            <span id="sessionStatusText">Memeriksa Sesi...</span>
+            <span class="btn-gear">⚙️</span>
+          </button>
         </div>
       </div>
 
@@ -184,6 +188,69 @@
     <footer class="app-footer">
       <p>QriPay Virtual Soundbox • GrabMerchant Portal Gateway (Jus Smoothies Janji Jawa)</p>
     </footer>
+  </div>
+
+  <!-- Modal: Update Grab Session -->
+  <div id="sessionModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">🔑</span>
+          <div>
+            <h3>Perbarui Sesi GrabMerchant</h3>
+            <p class="modal-desc">Tempel cURL bash dari browser, token dipilah otomatis</p>
+          </div>
+        </div>
+        <button id="btnCloseSessionModal" class="modal-close" title="Tutup">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Session Status Box -->
+        <div class="session-info-card" id="sessionInfoCard">
+          <div class="info-row">
+            <span class="info-label">Status Sesi:</span>
+            <span id="modalSessionState" class="status-tag online">Memeriksa...</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Masa Berlaku:</span>
+            <span id="modalSessionExpiry">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Toko Terhubung:</span>
+            <span id="modalSessionStore">Jus Smoothies Janji Jawa</span>
+          </div>
+        </div>
+
+        <!-- Quick Guide -->
+        <div class="guide-box">
+          <strong>Cara Ambil cURL (Cukup 1x Klik):</strong>
+          <ol>
+            <li>Buka tab <strong><a href="https://merchant.grab.com/finances?page=tx" target="_blank" rel="noopener">merchant.grab.com/finances</a></strong> di Chrome.</li>
+            <li>Tekan <code>F12</code> &rarr; pilih tab <strong>Network</strong> &rarr; Refresh halaman.</li>
+            <li>Cari request transaksi apapun &rarr; Klik Kanan &rarr; <strong>Copy</strong> &rarr; <strong>Copy as cURL (bash)</strong>.</li>
+            <li>Tempel (Paste) seluruh teks tersebut di kolom bawah ini:</li>
+          </ol>
+        </div>
+
+        <!-- Textarea Input -->
+        <div class="input-group">
+          <label for="curlInput">Teks cURL (bash) atau Cookie Lengkap:</label>
+          <textarea id="curlInput" rows="6" placeholder="curl --url 'https://merchant.grab.com/mex/finances/v2/...' \
+  -H 'accept: application/json...' \
+  -b '_gsvid=...; mexusers_authn_token=eyJhbGci...'"></textarea>
+        </div>
+
+        <!-- Alert Feedback -->
+        <div id="sessionAlert" class="alert-box hidden"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnCancelSession" class="btn-secondary">Batal</button>
+        <button id="btnSubmitCurl" class="btn-primary-grab">
+          <span id="btnSubmitCurlText">⚡ Ekstrak & Aktifkan Sesi Sekarang</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="/app.js"></script>
