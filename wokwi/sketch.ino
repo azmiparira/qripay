@@ -11,6 +11,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
@@ -48,6 +49,7 @@ String branchLocation = "";
 String lastAnnouncedTxId = "";
 unsigned long lastPollTime = 0;
 const unsigned long POLL_INTERVAL = 3000; // Polling setiap 3 detik
+unsigned long lastReconnectAttempt = 0;
 
 bool isPaymentActive = false;
 unsigned long paymentDisplayStart = 0;
@@ -106,14 +108,19 @@ void setup() {
   Serial.print(F("🌐 Server Cloud       : ")); Serial.println(CLOUD_HOST);
   Serial.println(F("========================================================\n"));
 
-  // 3. Sambungkan ke WiFi Virtual Wokwi
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  // 3. Sambungkan ke WiFi Virtual Wokwi (Gunakan Channel 6 untuk Bypass Channel Scan Wokwi)
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS, 6);
+  Serial.print(F("Menghubungkan ke WiFi Wokwi"));
+
   int retry = 0;
-  while (WiFi.status() != WL_CONNECTED && retry < 25) {
-    delay(250);
+  while (WiFi.status() != WL_CONNECTED && retry < 50) {
+    delay(150);
+    Serial.print(F("."));
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
     retry++;
   }
+  Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
     digitalWrite(LED_PIN, HIGH);
@@ -135,7 +142,13 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // 1. Tombol Hijau: Uji Simulasi Pembeli Scan di Meja Kasir Cabang Ini
+  // 1. Auto-Reconnect WiFi jika sempat putus
+  if (WiFi.status() != WL_CONNECTED && (now - lastReconnectAttempt >= 6000)) {
+    lastReconnectAttempt = now;
+    WiFi.begin(WIFI_SSID, WIFI_PASS, 6);
+  }
+
+  // 2. Tombol Hijau: Uji Simulasi Pembeli Scan di Meja Kasir Cabang Ini
   if (digitalRead(BTN_PAY_PIN) == LOW) {
     delay(250); // Debounce
     triggerLocalPayment(15000, "Pembeli (Scan QRIS Kasir)");
@@ -144,13 +157,13 @@ void loop() {
     }
   }
 
-  // 2. Polling Cloud API Khusus Cabang Ini (Mendeteksi Transaksi QRIS Real-Time)
+  // 3. Polling Cloud API Khusus Cabang Ini (Mendeteksi Transaksi QRIS Real-Time)
   if (WiFi.status() == WL_CONNECTED && (now - lastPollTime >= POLL_INTERVAL)) {
     lastPollTime = now;
     checkCloudTransactions();
   }
 
-  // 3. Kembalikan Tampilan ke Standby setelah 8 detik pembayaran
+  // 4. Kembalikan Tampilan ke Standby setelah 8 detik pembayaran
   if (isPaymentActive && (now - paymentDisplayStart >= 8000)) {
     isPaymentActive = false;
     showStandbyScreen();
@@ -186,38 +199,41 @@ void resolveBranchIdentity() {
 
 // --- CEK TRANSAKSI KHUSUS CABANG INI DARI CLOUD SERVER ---
 void checkCloudTransactions() {
+  WiFiClientSecure client;
+  client.setInsecure(); // Wokwi SSL bypass
   HTTPClient http;
+  
   String pollUrl = String(CLOUD_HOST) + "/api/soundbox/poll?branch=" + String(MY_BRANCH_ID) + "&device=" + deviceSerial;
   
-  http.begin(pollUrl);
-  http.setTimeout(4000);
+  if (http.begin(client, pollUrl)) {
+    http.setTimeout(4000);
+    int code = http.GET();
+    if (code == 200) {
+      String payload = http.getString();
+      StaticJsonDocument<2560> doc;
+      DeserializationError err = deserializeJson(doc, payload);
 
-  int code = http.GET();
-  if (code == 200) {
-    String payload = http.getString();
-    StaticJsonDocument<2560> doc;
-    DeserializationError err = deserializeJson(doc, payload);
+      if (!err && doc["success"] == true) {
+        JsonArray txs = doc["transactions"].as<JsonArray>();
+        if (txs.size() > 0) {
+          JsonObject latest = txs[0];
+          String txId = latest["id"].as<String>();
+          long amount = latest["amount"].as<long>();
+          const char* payer = latest["payer"] | "Pembeli QRIS";
 
-    if (!err && doc["success"] == true) {
-      JsonArray txs = doc["transactions"].as<JsonArray>();
-      if (txs.size() > 0) {
-        JsonObject latest = txs[0];
-        String txId = latest["id"].as<String>();
-        long amount = latest["amount"].as<long>();
-        const char* payer = latest["payer"] | "Pembeli QRIS";
-
-        if (lastAnnouncedTxId == "") {
-          // Sinkronisasi awal saat soundbox baru menyala (jangan langsung bunyi)
-          lastAnnouncedTxId = txId;
-        } else if (txId != lastAnnouncedTxId) {
-          // 🎉 TRANSAKSI BARU KHUSUS MEJA KASIR CABANG INI!
-          lastAnnouncedTxId = txId;
-          triggerLocalPayment(amount, payer);
+          if (lastAnnouncedTxId == "") {
+            // Sinkronisasi awal saat soundbox baru menyala (jangan langsung bunyi)
+            lastAnnouncedTxId = txId;
+          } else if (txId != lastAnnouncedTxId) {
+            // 🎉 TRANSAKSI BARU KHUSUS MEJA KASIR CABANG INI!
+            lastAnnouncedTxId = txId;
+            triggerLocalPayment(amount, payer);
+          }
         }
       }
     }
+    http.end();
   }
-  http.end();
 }
 
 // --- AKSI PEMBAYARAN DITERIMA (BUZZER + OLED + LED + SUARA) ---
@@ -256,14 +272,17 @@ void triggerLocalPayment(long amount, const char* payer) {
 
 // Kirim data simulasi tombol ke server agar sinkron dengan web dashboard
 void sendCloudSimulation(long amount) {
+  WiFiClientSecure client;
+  client.setInsecure();
   HTTPClient http;
+  
   String triggerUrl = String(CLOUD_HOST) + "/api/soundbox/trigger";
-  http.begin(triggerUrl);
-  http.addHeader("Content-Type", "application/json");
-
-  String postBody = "{\"branch\":\"" + String(MY_BRANCH_ID) + "\",\"amount\":" + String(amount) + ",\"payer\":\"Tombol Kasir Wokwi\"}";
-  http.POST(postBody);
-  http.end();
+  if (http.begin(client, triggerUrl)) {
+    http.addHeader("Content-Type", "application/json");
+    String postBody = "{\"branch\":\"" + String(MY_BRANCH_ID) + "\",\"amount\":" + String(amount) + ",\"payer\":\"Tombol Kasir Wokwi\"}";
+    http.POST(postBody);
+    http.end();
+  }
 }
 
 // --- MELODI BEL SOUNDBOX (CHIME BELL) ---
@@ -281,7 +300,7 @@ void showStandbyScreen() {
   // Header Bar: WiFi, Jam WIB, Status Baterai
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.print(F("WF:OK"));
+  display.print(WiFi.status() == WL_CONNECTED ? F("WF:OK") : F("WF:--"));
 
   display.setCursor(44, 0);
   display.print(getWIBTime());
