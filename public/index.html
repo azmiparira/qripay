@@ -81,6 +81,36 @@
       </div>
     </nav>
 
+    <!-- IoT Soundbox Network Grid across Indonesia -->
+    <div class="soundbox-network-bar">
+      <div class="network-title">
+        <span class="pulse-dot"></span>
+        <span>Jaringan IoT Soundbox Kasir:</span>
+      </div>
+      <div class="network-devices" id="networkDevicesList">
+        <div class="device-pill" id="pill-pusat" title="Cabang Pusat (Cipadung)">
+          <span class="dev-dot">⚪</span>
+          <span class="dev-name">Pusat:</span>
+          <code>SB-PUSAT-01</code>
+        </div>
+        <div class="device-pill" id="pill-pempek" title="Cabang Buah Batu">
+          <span class="dev-dot">⚪</span>
+          <span class="dev-name">Pempek:</span>
+          <code>SB-PEMPEK-01</code>
+        </div>
+        <div class="device-pill" id="pill-batagor" title="Cabang Dago">
+          <span class="dev-dot">⚪</span>
+          <span class="dev-name">Batagor:</span>
+          <code>SB-BATAGOR-01</code>
+        </div>
+        <div class="device-pill" id="pill-soto" title="Cabang Dipatiukur">
+          <span class="dev-dot">⚪</span>
+          <span class="dev-name">Soto:</span>
+          <code>SB-SOTO-01</code>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Workspace -->
     <main class="main-container">
       
@@ -161,6 +191,32 @@
             <a id="btnDownloadQris" href="/qris_pempekbandung.png" download="QRIS_Pempek_Bandung.png" class="btn-action-primary">
               Download QRIS Poster 📥
             </a>
+          </div>
+
+          <!-- Simulator Pembeli Scan di Meja Kasir Cabang Ini -->
+          <div class="customer-scan-box">
+            <div class="scan-box-header">
+              <span class="scan-box-icon">📲</span>
+              <div>
+                <strong>Simulasi Pembeli Scan di Kasir Ini</strong>
+                <small id="scanTargetLabel">Soundbox Target: Pempek Bandung (SB-PEMPEK-01)</small>
+              </div>
+            </div>
+            <div class="scan-quick-buttons">
+              <button class="btn-scan-sim" data-amt="10">Rp 10</button>
+              <button class="btn-scan-sim" data-amt="1000">Rp 1.000</button>
+              <button class="btn-scan-sim" data-amt="15000">Rp 15.000</button>
+              <button class="btn-scan-sim" data-amt="25000">Rp 25.000</button>
+              <button class="btn-scan-sim" data-amt="50000">Rp 50.000</button>
+            </div>
+            <div class="scan-custom-row">
+              <div class="scan-input-wrap">
+                <span>Rp</span>
+                <input type="number" id="customScanAmount" placeholder="Nominal lain (cth: 35000)" value="20000">
+              </div>
+              <button id="btnTriggerScan" class="btn-trigger-scan">⚡ Bayar Sekarang</button>
+            </div>
+            <div id="scanFeedback" class="scan-feedback hidden"></div>
           </div>
         </div>
       </section>

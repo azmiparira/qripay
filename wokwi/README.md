@@ -1,43 +1,75 @@
-# Panduan Menjalankan Simulasi QRIS Soundbox di Wokwi
+# Panduan Simulasi 4 Soundbox Kasir Se-Indonesia di Wokwi
 
-Berikut adalah cara menjalankan prototipe hardware **ESP32 QRIS Soundbox** secara virtual di [Wokwi.com](https://wokwi.com/):
-
----
-
-### Langkah 1: Buka Wokwi Simulator
-1. Buka browser dan kunjungi: **[https://wokwi.com/projects/new/esp32](https://wokwi.com/projects/new/esp32)**
+Panduan ini menjelaskan cara membuat **4 perangkat Soundbox mandiri** yang disimulasikan dalam **4 tab browser Wokwi**, di mana masing-masing perangkat mewakili meja kasir di cabang yang berbeda.
 
 ---
 
-### Langkah 2: Masukkan Kode `sketch.ino`
-1. Di tab **sketch.ino**, hapus semua kode bawaan.
-2. Salin seluruh isi file [`wokwi/sketch.ino`](./sketch.ino) dan tempel (paste) ke dalamnya.
+### 🏪 Pembagian 4 Cabang & Identitas Perangkat
+
+| No | Tab Wokwi | Kode Cabang (`MY_BRANCH_ID`) | Nama Toko QRIS | Device Serial ID | Lokasi Kasir |
+|:--:|:---------:|:----------------------------:|:---------------|:----------------:|:-------------|
+| 1  | **Tab 1** | `"pusat"`                    | JUS SMOOTHIES PUSAT | `SB-PUSAT-01` | Bandung (Pusat Cipadung) |
+| 2  | **Tab 2** | `"pempek"`                   | PEMPEK BANDUNG | `SB-PEMPEK-01` | Bandung (Buah Batu) |
+| 3  | **Tab 3** | `"batagor"`                  | BATAGOR BANDUNG | `SB-BATAGOR-01` | Bandung (Dago) |
+| 4  | **Tab 4** | `"soto"`                     | SOTO LAMONGAN | `SB-SOTO-01` | Bandung (Dipatiukur) |
 
 ---
 
-### Langkah 3: Masukkan Konfigurasi Komponen `diagram.json`
-1. Di samping tab *sketch.ino*, klik tab **diagram.json**.
-2. Hapus isinya, lalu salin seluruh isi file [`wokwi/diagram.json`](./diagram.json) dan tempel ke dalamnya.
-3. Anda akan melihat ESP32, layar OLED SSD1306, Buzzer, LED Hijau, dan 1 Tombol ("TES SIMULASI BAYAR") tersusun rapi dengan kabel-kabelnya. (Tidak ada lagi tombol manual ganti toko, karena sudah otomatis terhubung dengan web!).
+### 🚀 Cara Menyiapkan 4 Tab Wokwi (Cepat & Mudah)
 
----
+Lakukan langkah di bawah ini untuk **Tab 1**, lalu duplikat / buka 3 tab baru lagi untuk cabang lainnya:
 
-### Langkah 4: Tambahkan Library di Tab `Library Manager`
-1. Di panel sebelah kiri Wokwi, klik icon **Library Manager** (tab "Libraries").
-2. Klik tombol **+ Add a New Library**, lalu tambahkan 3 library ini:
+1. **Buka Wokwi:** Kunjungi **[https://wokwi.com/projects/new/esp32](https://wokwi.com/projects/new/esp32)**.
+2. **Tab `diagram.json`:** Hapus isinya, lalu salin dan tempel kode dari [`wokwi/diagram.json`](./diagram.json).
+3. **Tab `Library Manager`:** Tambahkan 3 library ini:
    * `Adafruit SSD1306`
    * `Adafruit GFX Library`
    * `ArduinoJson`
+4. **Tab `sketch.ino`:** Salin seluruh kode dari [`wokwi/sketch.ino`](./sketch.ino).
+5. **Pilih Cabang (Baris 24 `sketch.ino`):**
+   Cukup ganti 1 baris ini sesuai cabang untuk tab tersebut:
+   * Untuk Tab 1 (Pusat): `const char* MY_BRANCH_ID = "pusat";`
+   * Untuk Tab 2 (Pempek): `const char* MY_BRANCH_ID = "pempek";`
+   * Untuk Tab 3 (Batagor): `const char* MY_BRANCH_ID = "batagor";`
+   * Untuk Tab 4 (Soto): `const char* MY_BRANCH_ID = "soto";`
+6. **Klik Play (▶️)** di pojok atas Wokwi pada masing-masing tab.
 
 ---
 
-### Langkah 5: Jalankan Simulasi (Klik Tombol Play Hijau ▶️)
-1. Klik tombol **Play (▶️)** di pojok atas Wokwi.
-2. Anda akan melihat:
-   * ESP32 otomatis tersambung ke WiFi virtual `Wokwi-GUEST`.
-   * Layar OLED menampilkan jam WIB real-time, status WiFi, dan kasir QRIS aktif (contoh: **PEMPEK BANDUNG**).
-   * **Uji Otomatis via Web QriPay (4 QRIS):**
-     Buka web [https://qripay.vercel.app](https://qripay.vercel.app). Saat Anda mengklik tab cabang lain (**Jus Smoothies Pusat**, **Pempek Bandung**, **Batagor Bandung**, atau **Soto Lamongan**), Wokwi secara otomatis mendeteksi perpindahan QRIS dan memperbarui nama toko di layarnya secara real-time!
-   * **Uji Tombol Hijau ("TES SIMULASI BAYAR"):** Klik tombol hijau, bel buzzer berbunyi melodi transaksi (*Do-Mi-Sol*), LED berkedip, layar OLED menampilkan nominal Rp 15.000 dengan nama QRIS yang aktif, dan Serial Monitor mencetak:
-     > `🔊 [SPEAKER SOUNDBOX]: "Lima belas ribu rupiah diterima di PEMPEK BANDUNG"`
-   * **Uji Transaksi Scan Nyata:** Saat ada pelanggan scan QRIS cabang mana pun di website Anda, mutasi Grab yang masuk akan otomatis diproses, dan Wokwi akan langsung memunculkan nominal uang serta nama QRIS yang bersangkutan!
+### 🧪 Cara Menguji Transaksi Multi-Soundbox
+
+Buka web **[https://qripay.vercel.app](https://qripay.vercel.app)** di tab lain:
+
+1. **Lihat Status Jaringan IoT:**
+   Di bagian atas web, Anda akan melihat indikator bar:
+   `Jaringan IoT Soundbox Kasir: Pusat (SB-PUSAT-01) 🟢 | Pempek (SB-PEMPEK-01) 🟢 | Batagor (SB-BATAGOR-01) 🟢 | Soto (SB-SOTO-01) 🟢`
+   Tab Wokwi yang sedang menyala akan otomatis berubah warna menjadi hijau (Online)!
+
+2. **Simulasikan Pembeli Scan di Meja Kasir Pempek:**
+   * Klik tab **Pempek Bandung** di web.
+   * Di kotak *"Simulasi Pembeli Scan di Kasir Ini"*, klik nominal **Rp 25.000** (atau ketik nominal bebas, lalu klik *⚡ Bayar Sekarang*).
+   * **Hasil di Wokwi:**
+     * **HANYA Tab Wokwi Pempek yang berbunyi!**
+     * Buzzer bel transaksi (*Do-Mi-Sol*) berbunyi, LED hijau berkedip.
+     * Layar OLED menampilkan `PEMPEK BANDUNG - Rp 25.000 - [V] LUNAS`.
+     * Serial Monitor mencetak:
+       ```
+       ========================================================
+       🔔 PEMBAYARAN QRIS DITERIMA DI MEJA KASIR!
+       🏪 Cabang Toko        : PEMPEK BANDUNG
+       📱 Soundbox Device ID : SB-PEMPEK-01
+       📍 Lokasi             : Bandung (Cabang Buah Batu)
+       💰 Nominal Uang Masuk : Rp 25.000
+       💳 Pembayar           : Pembeli (Scan QRIS Meja Kasir)
+       🔊 [SPEAKER SOUNDBOX] : "Dua puluh lima ribu rupiah diterima di PEMPEK BANDUNG"
+       ========================================================
+       ```
+     * Tab Wokwi **Soto, Batagor, dan Pusat tetap tenang dan tidak ikut berbunyi** (tidak ada suara ganda/salah sasaran)!
+
+3. **Uji Cabang Lain (Batagor / Soto / Pusat):**
+   * Pindah ke tab **Batagor Bandung** di web, simulasikan pembayaran Rp 50.000.
+   * Maka **HANYA Tab Wokwi Batagor** yang berbunyi dan mencetak:
+     > `🔊 [SPEAKER SOUNDBOX]: "Lima puluh ribu rupiah diterima di BATAGOR BANDUNG"`
+
+4. **Uji Pembayaran Asli Grab:**
+   Setiap kali ada mutasi riil dari pembeli yang scan QRIS Anda via aplikasi Grab/OVO/BCA, server akan memproses dan mengarahkan suara ke soundbox cabang yang bersangkutan!

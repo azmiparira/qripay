@@ -11,6 +11,8 @@ const STORES = {
   pempek: {
     id: 'pempek',
     name: 'Pempek Bandung',
+    deviceId: 'SB-PEMPEK-01',
+    location: 'Bandung (Cabang Buah Batu)',
     emoji: '🥘',
     qrisImg: '/qris_pempekbandung.png',
     qrisTitle: 'QRIS Pempek Bandung',
@@ -20,6 +22,8 @@ const STORES = {
   batagor: {
     id: 'batagor',
     name: 'Batagor Bandung',
+    deviceId: 'SB-BATAGOR-01',
+    location: 'Bandung (Cabang Dago)',
     emoji: '🥟',
     qrisImg: '/qris_batagorbandung.png',
     qrisTitle: 'QRIS Batagor Bandung',
@@ -29,6 +33,8 @@ const STORES = {
   soto: {
     id: 'soto',
     name: 'Soto Lamongan',
+    deviceId: 'SB-SOTO-01',
+    location: 'Bandung (Cabang Dipatiukur)',
     emoji: '🍲',
     qrisImg: '/qris_sotolamongan.png',
     qrisTitle: 'QRIS Soto Lamongan',
@@ -38,6 +44,8 @@ const STORES = {
   pusat: {
     id: 'pusat',
     name: 'Jus Smoothies Pusat',
+    deviceId: 'SB-PUSAT-01',
+    location: 'Bandung (Pusat Cipadung)',
     emoji: '🍹',
     qrisImg: '/qris_pempekbandung.png',
     qrisTitle: 'Master QRIS Grab (Pusat)',
@@ -331,6 +339,11 @@ function selectStore(key, updateUrl = true) {
   if (btnDownloadQris) {
     btnDownloadQris.href = s.qrisImg;
     btnDownloadQris.setAttribute('download', s.downloadName);
+  }
+
+  const scanTargetLabel = document.getElementById('scanTargetLabel');
+  if (scanTargetLabel) {
+    scanTargetLabel.textContent = `Soundbox Target: ${s.name} (${s.deviceId})`;
   }
 
   // Update browser URL in address bar to ?store=... without page reload
@@ -630,6 +643,101 @@ if (btnSubmitCurl) {
   });
 }
 
+// ==============================================================================
+// 8. CUSTOMER SCAN SIMULATOR & IoT NETWORK MONITOR
+// ==============================================================================
+
+async function triggerScanSimulation(amount) {
+  unlockAudio();
+  const s = STORES[currentStoreKey] || STORES.pempek;
+  const feedback = document.getElementById('scanFeedback');
+  if (feedback) {
+    feedback.classList.remove('hidden');
+    feedback.textContent = `⏳ Mengirim scan Rp ${Number(amount).toLocaleString('id-ID')} ke Kasir ${s.name}...`;
+  }
+
+  try {
+    const res = await fetch('/api/soundbox/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        branch: currentStoreKey,
+        amount: amount,
+        payer: 'Pembeli (Scan QRIS Meja Kasir)'
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (feedback) {
+        feedback.textContent = `✅ Transaksi masuk ke Soundbox ${s.name} (${s.deviceId})! Periksa Wokwi tab ${s.name}.`;
+      }
+      // Speak locally on this browser tab as well
+      queueSpeech(amount, s.name);
+      addFeedRow({
+        id: data.transaction?.id || Date.now(),
+        amount: amount,
+        storeName: s.name,
+        type: 'QRIS',
+        created_at: new Date().toISOString()
+      }, true);
+    } else {
+      if (feedback) feedback.textContent = `❌ Gagal: ${data.error || 'Server error'}`;
+    }
+  } catch (err) {
+    if (feedback) feedback.textContent = `❌ Gagal mengirim: ${err.message}`;
+  }
+}
+
+// Quick amount buttons in scan simulator
+document.querySelectorAll('.btn-scan-sim').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const amt = parseInt(e.currentTarget.getAttribute('data-amt'), 10) || 15000;
+    triggerScanSimulation(amt);
+  });
+});
+
+// Custom amount input & button
+const btnTriggerScan = document.getElementById('btnTriggerScan');
+const customScanAmount = document.getElementById('customScanAmount');
+if (btnTriggerScan && customScanAmount) {
+  btnTriggerScan.addEventListener('click', () => {
+    const amt = parseInt(customScanAmount.value, 10);
+    if (!amt || amt <= 0) {
+      alert('Masukkan nominal valid lebih dari 0.');
+      return;
+    }
+    triggerScanSimulation(amt);
+  });
+}
+
+// IoT Soundbox Network Device Heartbeat Poller
+async function fetchSoundboxDevices() {
+  try {
+    const res = await fetch('/api/soundbox/devices');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.devices)) {
+      data.devices.forEach(dev => {
+        const pill = document.getElementById(`pill-${dev.branchId}`);
+        if (pill) {
+          const dot = pill.querySelector('.dev-dot');
+          if (dev.online) {
+            pill.classList.add('online');
+            if (dot) dot.textContent = '🟢';
+            pill.setAttribute('title', `${dev.storeName} (${dev.deviceId}) - ONLINE di Wokwi`);
+          } else {
+            pill.classList.remove('online');
+            if (dot) dot.textContent = '⚪';
+            pill.setAttribute('title', `${dev.storeName} (${dev.deviceId}) - STANDBY`);
+          }
+        }
+      });
+    }
+  } catch (e) {}
+  finally {
+    setTimeout(fetchSoundboxDevices, 4000);
+  }
+}
+
 // URL Store parameter routing (e.g. ?store=batagor or ?store=pempek)
 try {
   const urlParams = new URLSearchParams(window.location.search);
@@ -642,4 +750,5 @@ try {
 // Initial checks & start polling
 checkSessionStatus();
 fetchGrabPoll();
+fetchSoundboxDevices();
 setInterval(checkSessionStatus, 30000); // Check status every 30s
