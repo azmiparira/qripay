@@ -65,6 +65,34 @@ function saveAnnouncedTxIds() {
   } catch (e) {}
 }
 
+// Cross-Tab Mutex Lock (Guarantees only 1 tab/branch speaks if user opens multiple tabs/windows)
+const soundboxChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('qripay_soundbox_lock') : null;
+
+if (soundboxChannel) {
+  soundboxChannel.onmessage = (event) => {
+    if (event.data?.type === 'CLAIM_TX') {
+      const txId = String(event.data.id);
+      announcedTxIds.add(txId);
+      saveAnnouncedTxIds();
+    }
+  };
+}
+
+function claimTransaction(txId) {
+  const key = `qripay_claimed_${txId}`;
+  const now = Date.now();
+  const existing = localStorage.getItem(key);
+  if (existing && (now - parseInt(existing, 10) < 30000)) {
+    // Already claimed and announced by another tab/window!
+    return false;
+  }
+  localStorage.setItem(key, String(now));
+  if (soundboxChannel) {
+    soundboxChannel.postMessage({ type: 'CLAIM_TX', id: String(txId), store: currentStoreKey });
+  }
+  return true;
+}
+
 // ==============================================================================
 // 2. DOM ELEMENTS
 // ==============================================================================
@@ -384,6 +412,13 @@ async function fetchGrabPoll() {
 
         // Process oldest to newest
         newItems.reverse().forEach(tx => {
+          // Cross-tab mutex check: if another tab/branch already claimed this transaction, DO NOT SPEAK!
+          if (!claimTransaction(tx.id)) {
+            announcedTxIds.add(String(tx.id));
+            saveAnnouncedTxIds();
+            return;
+          }
+
           announcedTxIds.add(String(tx.id));
           saveAnnouncedTxIds();
 
@@ -567,6 +602,15 @@ if (btnSubmitCurl) {
     }
   });
 }
+
+// URL Store parameter routing (e.g. ?store=batagor or ?store=pempek)
+try {
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetStore = urlParams.get('store');
+  if (targetStore && STORES[targetStore]) {
+    selectStore(targetStore);
+  }
+} catch (e) {}
 
 // Initial checks & start polling
 checkSessionStatus();
